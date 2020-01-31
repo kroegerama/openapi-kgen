@@ -1,0 +1,10 @@
+{{#openAPI.info}}{{>header.hbs}}{{/openAPI.info}}
+package {{{packageName}}}
+
+{{#primitives~}}
+typealias {{{name}}} = {{{type}}}
+{{/primitives}}
+
+{{~#arrays~}}
+typealias {{{name}}} = {{{listType}}}<{{{type}}}>
+{{/arrays}}

@@ -1,0 +1,3 @@
+rootProject.name = 'openapi-kgen'
+include 'openapi-kgen-cli'
+

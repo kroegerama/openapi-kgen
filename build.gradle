@@ -1,0 +1,60 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'org.jetbrains.kotlin.jvm' version '1.3.61'
+    id 'com.github.johnrengelman.shadow' version '5.2.0'
+}
+
+group 'com.kroegerama'
+version '1.0-SNAPSHOT'
+mainClassName = 'com.kroegerama.retrokotgen.cli.CommandLineKt'
+
+sourceCompatibility = 1.8
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+dependencies {
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
+
+    implementation 'io.airlift:airline:0.8'
+    implementation 'com.ibm.icu:icu4j:65.1'
+
+    implementation 'io.swagger.parser.v3:swagger-parser:2.0.17'
+
+//    implementation 'com.github.jknack:handlebars:4.1.2'
+//    implementation 'com.github.jknack:handlebars-jackson2:4.1.2'
+
+    implementation 'com.squareup:kotlinpoet:1.5.0'
+
+    implementation 'org.koin:koin-core:2.0.1'
+
+    implementation 'org.slf4j:slf4j-api:1.7.29'
+    implementation 'org.slf4j:slf4j-simple:1.7.29'
+
+    implementation 'com.google.guava:guava:28.1-jre'
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+processResources {
+    def properties = ['version': project.version]
+    inputs.properties(properties)
+    filesMatching('version.properties') {
+        expand(properties)
+    }
+}
+
+shadowJar {
+    archiveClassifier.set('')
+    destinationDirectory = file("$rootDir/dist")
+}

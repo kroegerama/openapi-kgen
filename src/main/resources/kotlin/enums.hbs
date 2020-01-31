@@ -1,0 +1,12 @@
+{{#openAPI.info}}{{>header.hbs}}{{/openAPI.info}}
+package {{{packageName}}}
+
+{{#enums}}
+enum class {{{name}}}(
+    val value: {{{type}}}
+) {
+{{#each options}}
+    {{{name}}}({{{value}}}){{^@last}},{{/@last}}
+{{/each}}
+}
+{{/enums}}
