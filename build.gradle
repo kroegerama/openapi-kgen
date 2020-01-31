@@ -57,4 +57,6 @@ processResources {
 shadowJar {
     archiveClassifier.set('')
     destinationDirectory = file("$rootDir/dist")
+
+    version '0.9.9'
 }
