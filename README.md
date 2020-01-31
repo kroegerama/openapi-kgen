@@ -4,6 +4,8 @@
 
 Generate modern API Clients in Kotlin from OpenAPI specifications. Supports OpenAPI >= 3.0.0.
 
+A generated example client can be found here: [openapi-kgen-generated](https://github.com/kroegerama/openapi-kgen-generated)
+
 **Features**
 
 - Kotlin
