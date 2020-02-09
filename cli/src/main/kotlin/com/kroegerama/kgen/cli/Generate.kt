@@ -66,7 +66,8 @@ class Generate : Runnable {
             limitApis = limitApis.split(",").filter { it.isNotBlank() }.toSet(),
             verbose = verbose,
             dryRun = dryRun,
-            useInlineClass = useInlineClass
+            useInlineClass = useInlineClass,
+            outputDirIsSrcDir = false
         )
         println("Selected options: $options")
         println()

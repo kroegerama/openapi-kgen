@@ -17,7 +17,48 @@ A generated example client can be found here: [openapi-kgen-generated](https://g
 - Allows injection of custom request interceptors
 - Allows filtering of APIs to only generate a subset of the OpenAPI (e.g. Endpoints tagged with 'App')
 
-### Command Line Arguments
+## Gradle plugin
+
+###### 1. Add plugin classpath to your root `build.gradle`
+
+```groovy
+buildscript {
+    [...]
+    dependencies {
+        [...]
+        classpath 'com.kroegerama.kgen:gradle-plugin:<version>'
+    }
+}
+```
+
+###### 2. Apply the plugin at the top of your `build.gradle` inside a module of your project
+
+```groovy
+apply plugin: "com.kroegerama.kgen.gradle-plugin"
+```
+
+###### 3. Configure the plugin at the end of your module's `build.gradle`
+
+```groovy
+kgen {
+    //use local spec file
+    specFile = file("openapi.yaml")
+    //alternative: use uri to an OpenAPI file
+    //specUri = "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/master/examples/v3.0/petstore.yaml"
+    
+    //define the package name of the generated classes
+    packageName = "com.kroegerama.test"
+    
+    //optional: limit generated Apis (via endpoint.tag)
+    //limitApis = ["App"]
+    
+    //optional: use inline classes instead of typedef for named primitive types
+    //useInlineClasses = true
+}
+```
+
+
+## CLI program
 
 ```
 NAME
@@ -60,13 +101,13 @@ OPTIONS
             Spec file (yaml/json). Can be a file or url.
 ```
 
-### Usage of the generated code
+## Usage of the generated code
 
 #### Metadata
 
 A `Metadata` object is generated which contains information about the OpenAPI spec.
 
-#### APIs
+### APIs
 
 Each API is generated with a `companion object` which delegates all methods to the actual client.
 This allows for lazy (re-) creation of the OkHttpClient and Retrofit instances.
@@ -76,7 +117,7 @@ Calling an endpoint is as simple as:
 AppApi.getCurrentUser()
 ``` 
 
-#### Inject code into the OkHttpClient / Retrofit builders. E.g. for custom interceptors
+### Inject code into the OkHttpClient / Retrofit builders. E.g. for custom interceptors
 
 If you want to inject custom code in the OkHttp/Retrofit builders, you can create an `ApiDecorator`. Example:
 
@@ -103,11 +144,11 @@ ApiHolder.decorator = MyApiDecorator()
 ```
  
 
-#### Security
+### Security
 
 Each security scheme will generate a set/clear method in the `ApiAuthInterceptor` object, which will automatically be used by the `ApiHolder`.
 
-#### Gradle module
+### Gradle module
 
 **Currently the generator only generates source files and no complete gradle module. You can use the following gradle file for android:**
 
@@ -160,21 +201,21 @@ dependencies {
 }
 ```
 
-### Used Libraries
-#### Generator
+## Used Libraries
+### Generator
 
 - [Kotlin Poet](https://github.com/square/kotlinpoet)
 - [Koin](https://insert-koin.io/)
 - [Airlift Airline](https://github.com/airlift/airline)
 - [Swagger Parser](https://github.com/swagger-api/swagger-parser)
 
-#### Generated Code
+### Generated Code
 
 - [Retrofit](https://square.github.io/retrofit/)
 - [OkHttp](https://github.com/square/okhttp)
 - [Moshi](https://github.com/square/moshi)
 
-### License
+## License
 
 ```
 Copyright 2020 kroegerama

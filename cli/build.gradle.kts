@@ -15,7 +15,6 @@ tasks {
     named<ShadowJar>("shadowJar") {
         archiveBaseName.set("openapi-kgen-cli")
         archiveClassifier.set("")
-//        archiveVersion.set("0.9.0")
 
         mergeServiceFiles()
         manifest {

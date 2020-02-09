@@ -10,3 +10,4 @@ tasks.processResources {
         expand(project.properties)
     }
 }
+

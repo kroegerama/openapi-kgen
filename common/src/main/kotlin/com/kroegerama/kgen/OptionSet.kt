@@ -7,7 +7,8 @@ data class OptionSet(
     val limitApis: Set<String>,
     val verbose: Boolean,
     val dryRun: Boolean,
-    val useInlineClass: Boolean
+    val useInlineClass: Boolean,
+    val outputDirIsSrcDir: Boolean
 ) {
 
     val apiPackage = "$packageName.api"

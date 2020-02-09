@@ -3,6 +3,7 @@ package com.kroegerama.kgen.poet
 import com.kroegerama.kgen.Constants
 import com.kroegerama.kgen.OptionSet
 import com.kroegerama.kgen.Util
+import com.kroegerama.kgen.asBaseUrl
 import com.kroegerama.kgen.language.asFunctionName
 import com.kroegerama.kgen.openapi.OpenAPIAnalyzer
 import com.kroegerama.kgen.openapi.SecurityType
@@ -69,7 +70,8 @@ class BaseFilesGenerator(
 
             val block = CodeBlock.builder().apply {
                 servers.forEachIndexed { index, server ->
-                    add("%S", server.url)
+                    val baseUrl = server.url.asBaseUrl()
+                    add("%S", baseUrl)
                     if (index < servers.size - 1) add(", ")
                 }
             }.build()

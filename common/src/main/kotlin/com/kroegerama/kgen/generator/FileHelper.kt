@@ -18,7 +18,12 @@ class FileHelper(
             return
         }
         println("Writing ${fileSpec.packageName} ${fileSpec.name}")
-        fileSpec.writeTo(srcPath)
+
+        if (options.outputDirIsSrcDir) {
+            fileSpec.writeTo(rootPath)
+        } else {
+            fileSpec.writeTo(srcPath)
+        }
     }
 
 }
