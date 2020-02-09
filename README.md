@@ -19,6 +19,8 @@ A generated example client can be found here: [openapi-kgen-generated](https://g
 
 ## Gradle plugin
 
+[Gradle Plugin Repository](https://plugins.gradle.org/plugin/com.kroegerama.kgen.gradle-plugin)
+
 ###### 1. Add plugin classpath to your root `build.gradle`
 
 ```groovy
