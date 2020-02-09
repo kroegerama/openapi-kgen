@@ -1,4 +1,4 @@
-# OpenAPI Generator
+# OpenAPI KGen
 
 ### Description
 
