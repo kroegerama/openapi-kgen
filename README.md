@@ -19,7 +19,7 @@ A generated example client can be found here: [openapi-kgen-generated](https://g
 
 ## Gradle plugin
 
-[Gradle Plugin Repository](https://plugins.gradle.org/plugin/com.kroegerama.kgen.gradle-plugin)
+[Gradle Plugin Repository](https://plugins.gradle.org/plugin/com.kroegerama.openapi-kgen.gradle-plugin)
 
 ###### 1. Add plugin classpath to your root `build.gradle`
 
@@ -28,7 +28,7 @@ buildscript {
     [...]
     dependencies {
         [...]
-        classpath 'com.kroegerama.kgen:gradle-plugin:<version>'
+        classpath 'com.kroegerama.openapi-kgen:gradle-plugin:<version>'
     }
 }
 ```
@@ -36,7 +36,7 @@ buildscript {
 ###### 2. Apply the plugin at the top of your `build.gradle` inside a module of your project
 
 ```groovy
-apply plugin: "com.kroegerama.kgen.gradle-plugin"
+apply plugin: "com.kroegerama.openapi-kgen.gradle-plugin"
 ```
 
 ###### 3. Configure the plugin at the end of your module's `build.gradle`

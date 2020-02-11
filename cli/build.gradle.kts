@@ -5,10 +5,10 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":common"))
+    implementation(project(":core"))
 
-    implementation("io.airlift:airline:0.8")
-    api("com.google.guava:guava:28.1-jre")
+    implementation(Dep.AIRLINE)
+    api(Dep.GUAVA)
 }
 
 tasks {

@@ -1,21 +1,21 @@
+import com.jfrog.bintray.gradle.BintrayExtension
+
 plugins {
     java
-    kotlin("jvm") version "1.3.61"
+    kotlin("jvm") version V.KOTLIN
     id("signing")
     id("maven-publish")
+    id("com.jfrog.bintray") version V.BINTRAY apply false
 }
 
 allprojects {
     repositories {
         google()
         jcenter()
-        mavenCentral()
     }
 
     apply {
         plugin("org.jetbrains.kotlin.jvm")
-        plugin("signing")
-        plugin("maven-publish")
     }
 
     dependencies {
@@ -26,8 +26,10 @@ allprojects {
         sourceCompatibility = JavaVersion.VERSION_1_8
     }
 
-    version = "1.0.0"
-    group = "com.kroegerama.kgen"
+    version = C.PROJECT_VERSION
+    group = C.PROJECT_GROUP_ID
+
+    description = C.PROJECT_DESCRIPTION
 
     tasks {
         compileKotlin {
@@ -37,28 +39,16 @@ allprojects {
             kotlinOptions.jvmTarget = JavaVersion.VERSION_1_8.toString()
         }
     }
-
-    if (name in listOf("common", "gradle-plugin")) {
-        configurePublishing()
-    }
 }
 
-fun Project.configurePublishing() {
+subprojects {
+    apply {
+        plugin("maven-publish")
+        plugin("com.jfrog.bintray")
+    }
     publishing {
-        val nexusUsername: String by project
-        val nexusPassword: String by project
-
-        repositories {
-            maven(url = Constants.SONATYPE_STAGING) {
-                credentials {
-                    username = nexusUsername
-                    password = nexusPassword
-                }
-            }
-        }
-
         publications {
-            create<MavenPublication>("mavenJava") {
+            create<MavenPublication>("maven") {
                 val binaryJar = components["java"]
 
                 val sourcesJar by tasks.creating(Jar::class) {
@@ -79,9 +69,26 @@ fun Project.configurePublishing() {
         }
     }
 
-    afterEvaluate {
-        signing {
-            sign(publishing.publications["mavenJava"])
-        }
+    configure<BintrayExtension> {
+        val bintrayUser: String by project
+        val bintrayApiKey: String by project
+
+        user = bintrayUser
+        key = bintrayApiKey
+
+        setPublications("maven")
+
+        pkg(delegateClosureOf<BintrayExtension.PackageConfig> {
+            repo = "maven"
+            userOrg = user
+
+            name = "${rootProject.name}:${project.name}"
+            desc = project.description
+
+            setLicenses("Apache-2.0")
+            vcsUrl = "https://github.com/kroegerama/openapi-kgen"
+            setLabels("openapi", "generator", "codegen", "swagger")
+            publicDownloadNumbers = true
+        })
     }
 }

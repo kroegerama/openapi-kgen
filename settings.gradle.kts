@@ -1,2 +1,2 @@
 rootProject.name = "openapi-kgen"
-include(":common",":cli",":gradle-plugin")
+include(":core",":cli",":gradle-plugin")
