@@ -12,6 +12,7 @@ import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.security.SecurityScheme
+import java.lang.reflect.Type
 
 interface IBaseFilesGenerator {
     fun getBaseFiles(): List<FileSpec>
@@ -27,7 +28,8 @@ class BaseFilesGenerator(
     override fun getBaseFiles() = listOf(
         getMetadataFile(),
         getApiHolderFile(),
-        getAuthInterceptorFile()
+        getAuthInterceptorFile(),
+        getEnumConverterFile()
     )
 
     private fun getMetadataFile() = prepareFileSpec(options.packageName, "Metadata") {
@@ -179,6 +181,7 @@ class BaseFilesGenerator(
                 addStatement("client(client)")
                 addStatement("addConverterFactory(%T.create())", ClassName("retrofit2.converter.scalars", "ScalarsConverterFactory"))
                 addStatement("addConverterFactory(%T.create())", ClassName("retrofit2.converter.moshi", "MoshiConverterFactory"))
+                addStatement("addConverterFactory(%T)", ClassName(options.packageName, "EnumConverterFactory"))
                 addStatement("decorator?.apply { decorate() }")
                 addStatement("build()")
                 endControlFlow()
@@ -201,24 +204,12 @@ class BaseFilesGenerator(
                 )
             }
 
-//            val apiVals = analyzer.apis.keys.map { name ->
-//                val apiName = "$name api"
-//                val cnApi = ClassName(options.apiPackage, apiName.asTypeName())
-//                poetProperty(apiName.asFieldName(), cnApi) {
-//                    val fGetter = FunSpec.getterBuilder().apply {
-//                        addStatement("return %N()", fnGetApi)
-//                    }.build()
-//                    getter(fGetter)
-//                }
-//            }
-
             addProperty(pDecorator)
             addProperty(pCurrentClient)
             addProperty(pCurrentRetrofit)
             addProperty(pClient)
             addProperty(pRetrofit)
             addProperty(pApiMap)
-//            addProperties(apiVals)
             addFunction(fInvalidate)
             addFunction(fCreateClient)
             addFunction(fCreateRetrofit)
@@ -422,6 +413,47 @@ class BaseFilesGenerator(
         }
 
         return listOf(fSet, fClear)
+    }
+
+    private fun getEnumConverterFile() = prepareFileSpec(options.packageName, "EnumConverterFactory") {
+        val name = ClassName(options.packageName, "EnumConverterFactory")
+        val fnStringConverter = MemberName(name, "stringConverter")
+        val fnCreateEnumConverter = MemberName(name, "createEnumConverter")
+
+        val cStar = Class::class.asClassName().parameterizedBy(STAR)
+
+        val enumConverterFactory = poetObject(name) {
+            superclass(PoetConstants.CONVERTER_FACTORY)
+
+            val stringConverterFun = poetFunSpec(fnStringConverter.simpleName) {
+                addModifiers(KModifier.OVERRIDE)
+                addParameter("type", Type::class)
+                addParameter("annotations", ARRAY.parameterizedBy(ANNOTATION))
+                addParameter("retrofit", PoetConstants.RETROFIT)
+                addStatement("return if (type is %T && type.isEnum) %N() else null", cStar, fnCreateEnumConverter)
+            }
+            val createEnumConverterFun = poetFunSpec(fnCreateEnumConverter.simpleName) {
+                addModifiers(KModifier.PRIVATE)
+                returns(PoetConstants.CONVERTER.parameterizedBy(ENUM.parameterizedBy(STAR), STRING))
+                addStatement(
+                    """
+                    return %T { enum ->
+                        try {
+                            enum.javaClass.getField(enum.name).getAnnotation(%T::class.java)?.name
+                        } catch (e: %T) {
+                            null
+                        } ?: enum.toString()
+                    }""".trimIndent(),
+                    PoetConstants.CONVERTER,
+                    PoetConstants.MOSHI_JSON,
+                    PoetConstants.EXCEPTION
+                )
+            }
+
+            addFunction(stringConverterFun)
+            addFunction(createEnumConverterFun)
+        }
+        addType(enumConverterFactory)
     }
 
 }

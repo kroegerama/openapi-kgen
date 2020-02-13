@@ -41,6 +41,9 @@ object PoetConstants {
 
     val RETROFIT_CREATE_FUN = MemberName(PKG_RETROFIT, "create")
 
+    val CONVERTER = ClassName(PKG_RETROFIT, "Converter")
+    val CONVERTER_FACTORY = ClassName(PKG_RETROFIT, "Converter", "Factory")
+
     val OK_REQUEST_BODY = ClassName(PKG_OK, "RequestBody")
     val OK_RESPONSE_BODY = ClassName(PKG_OK, "ResponseBody")
 
@@ -54,4 +57,5 @@ object PoetConstants {
 
     val LIST_OF = MemberName("kotlin.collections", "listOf")
     val MUTABLE_MAP_OF = MemberName("kotlin.collections", "mutableMapOf")
+    val EXCEPTION = ClassName("kotlin", "Exception")
 }

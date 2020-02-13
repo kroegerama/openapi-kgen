@@ -13,6 +13,7 @@ import io.swagger.v3.oas.models.security.SecurityScheme
 import java.util.*
 import kotlin.collections.HashSet
 
+@Suppress("JoinDeclarationAndAssignment")
 class OpenAPIAnalyzer(
     private val openAPI: OpenAPI,
     private val options: OptionSet
@@ -140,6 +141,16 @@ class OpenAPIAnalyzer(
             unnamedSchemas.removeAll(accepted)
         }
 
+        val unnamedEnums = unnamedSchemas.filter {
+            it.schemaType == SchemaType.Enum
+        }
+        unnamedSchemas.removeAll(unnamedEnums)
+        val namedEnums = unnamedEnums.map { unnamedEnum ->
+            val name = unnamedEnum.path.joinToString(" ")
+            unnamedEnum.withName(name)
+        }
+        enums.addAll(namedEnums)
+
         val generatedNames = unnamedSchemas.map { unnamed ->
             val name = unnamed.path.joinToString(" ")
             unnamed.withName(name)
@@ -163,6 +174,9 @@ class OpenAPIAnalyzer(
     fun findNameFor(schema: Schema<*>): TypeName {
         val knownName = findRawNameFor(schema)
         if (knownName != null) return ClassName(options.modelPackage, knownName.asTypeName())
+
+        val enumName = enums.firstOrNull { it.schema === schema }?.name
+        if (enumName != null) return ClassName(options.modelPackage, enumName.asTypeName())
 
         val treeName = objectTree.findName(schema)
         if (treeName.isNotEmpty()) {
