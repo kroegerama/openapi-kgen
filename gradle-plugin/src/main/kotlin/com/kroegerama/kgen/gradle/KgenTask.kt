@@ -75,11 +75,15 @@ open class KgenTask : DefaultTask() {
             }
         }
         val specPath = specFile.orNull?.absolutePath ?: specUri.orNull ?: throw InvalidUserDataException("specFile or specUri needs to be set")
+        val outputDir = output.get()
+        if (!outputDir.exists()) {
+            throw InvalidUserDataException("Output path does not exist")
+        }
 
         val options = OptionSet(
             specFile = specPath,
             packageName = packageName.get(),
-            outputDir = output.get().absolutePath,
+            outputDir = outputDir.absolutePath,
             limitApis = limitApis.get(),
             verbose = false,
             dryRun = false,

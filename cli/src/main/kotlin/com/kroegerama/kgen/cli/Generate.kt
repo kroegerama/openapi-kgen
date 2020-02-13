@@ -10,6 +10,7 @@ import com.kroegerama.kgen.poet.PoetGenerator
 import io.airlift.airline.Arguments
 import io.airlift.airline.Command
 import io.airlift.airline.Option
+import java.io.File
 
 @Command(name = "generate", description = "Generate code from the specified OpenAPI Spec.")
 class Generate : Runnable {
@@ -71,6 +72,12 @@ class Generate : Runnable {
         )
         println("Selected options: $options")
         println()
+
+        val output = File(output)
+        if (!output.exists() || !output.isDirectory) {
+            println("Output directory does not exist")
+            return
+        }
 
         if (options.verbose) println("Parsing spec file...")
         val openAPI = parseSpecFile(options.specFile)
