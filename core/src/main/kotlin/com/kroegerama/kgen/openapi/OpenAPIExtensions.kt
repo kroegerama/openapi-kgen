@@ -72,7 +72,8 @@ fun Schema<*>.getSchemaType() = when {
     this is ObjectSchema -> SchemaType.Object
     this is ComposedSchema -> SchemaType.Composition
 
-    else -> SchemaType.Object //throw IllegalStateException("Schema not supported: ${this.type}")
+    `$ref` != null -> SchemaType.Ref
+    else -> SchemaType.Object
 }
 
 fun PathItem.HttpMethod.mapToName(): ClassName = when (this) {

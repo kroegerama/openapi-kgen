@@ -17,6 +17,8 @@ fun parseSpecFile(specFile: String): OpenAPI {
     return OpenAPIParser().readLocation(specFile, emptyList(), parseOpts).openAPI
 }
 
+fun Schema<*>.getRefTypeName(): String? = `$ref`?.substringAfterLast('/')
+
 enum class SchemaType(
     val shortName: String
 ) {
@@ -25,7 +27,8 @@ enum class SchemaType(
     Enum("Enum"),
     Array("Arr"),
     Map("Map"),
-    Composition("Comp")
+    Composition("Comp"),
+    Ref("Ref")
 }
 
 enum class OperationRequestType {

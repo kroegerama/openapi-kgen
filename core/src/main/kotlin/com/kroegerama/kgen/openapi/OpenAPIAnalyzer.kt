@@ -198,6 +198,11 @@ class OpenAPIAnalyzer(
                 MAP.parameterizedBy(STRING, inner)
             }
             SchemaType.Composition -> schema.mapToTypeName()
+            SchemaType.Ref -> {
+                val refTypeName = schema.getRefTypeName()
+                val refType = openAPI.components.schemas[refTypeName] ?: throw IllegalStateException("Schema not found $refTypeName")
+                findNameFor(refType)
+            }
         }
     }
 

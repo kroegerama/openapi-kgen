@@ -9,6 +9,7 @@ import io.swagger.v3.oas.models.headers.Header
 import io.swagger.v3.oas.models.media.*
 import io.swagger.v3.oas.models.parameters.Parameter
 import io.swagger.v3.oas.models.responses.ApiResponse
+import java.util.*
 
 typealias TagFilter = Set<String>
 typealias Visitor = (path: List<String>, schema: Schema<*>) -> Unit
@@ -58,28 +59,34 @@ fun OpenAPI.visit(
     tagFilter: TagFilter = emptySet(),
     visitor: Visitor
 ) {
+    val marker = Any()
+    val visited = IdentityHashMap<Any, Any>()
+    fun visit(obj: Any) = visited.put(obj, marker) == null
+
     paths.orEmpty().forEach { (pathName, pathItem) ->
-        visitPathItem(pathName, pathItem, tagFilter, visitor)
+        visitPathItem(::visit, pathName, pathItem, tagFilter, visitor)
     }
 }
 
 private fun OpenAPI.visitPathItem(
+    visFun: (Any) -> Boolean,
     pathName: String,
     pathItem: PathItem,
     tagFilter: TagFilter,
     visitor: Visitor
 ) {
     pathItem.parameters.orEmpty().forEach { parameter ->
-        visitParameter(listOf(parameter.name), parameter, tagFilter, visitor)
+        visitParameter(visFun, listOf(parameter.name), parameter, tagFilter, visitor)
     }
 
     pathItem.readOperationsMap().forEach { (method, operation) ->
         val operationId = operation.operationId ?: "${method.name} $pathName"
-        visitOperation(listOf(operationId), operation, tagFilter, visitor)
+        visitOperation(visFun, listOf(operationId), operation, tagFilter, visitor)
     }
 }
 
 private fun OpenAPI.visitOperation(
+    visFun: (Any) -> Boolean,
     parentPath: List<String>,
     operation: Operation,
     tagFilter: TagFilter,
@@ -92,13 +99,13 @@ private fun OpenAPI.visitOperation(
         }
     }
     operation.parameters.orEmpty().forEach { parameter ->
-        visitParameter(parentPath + parameter.name, parameter, tagFilter, visitor)
+        visitParameter(visFun, parentPath + parameter.name, parameter, tagFilter, visitor)
     }
     operation.requestBody?.content?.let { content ->
-        visitContent(parentPath + "body", content, tagFilter, visitor)
+        visitContent(visFun, parentPath + "body", content, tagFilter, visitor)
     }
     operation.responses.orEmpty().forEach { (code, response) ->
-        visitResponse(parentPath + "response", code, response, tagFilter, visitor)
+        visitResponse(visFun, parentPath + "response", code, response, tagFilter, visitor)
     }
 
     //TODO callbacks are not supported right now...
@@ -110,20 +117,22 @@ private fun OpenAPI.visitOperation(
 }
 
 private fun OpenAPI.visitParameter(
+    visFun: (Any) -> Boolean,
     parentPath: List<String>,
     parameter: Parameter,
     tagFilter: TagFilter,
     visitor: Visitor
 ) {
     parameter.schema?.let { schema ->
-        visitSchema(parentPath, schema, tagFilter, visitor)
+        visitSchema(visFun, parentPath, schema, tagFilter, visitor)
     }
     parameter.content?.let { content ->
-        visitContent(parentPath, content, tagFilter, visitor)
+        visitContent(visFun, parentPath, content, tagFilter, visitor)
     }
 }
 
 private fun OpenAPI.visitContent(
+    visFun: (Any) -> Boolean,
     parentPath: List<String>,
     content: Content,
     tagFilter: TagFilter,
@@ -131,12 +140,13 @@ private fun OpenAPI.visitContent(
 ) {
     content.forEach { (mime, mediaType) ->
         mediaType.schema?.let { schema ->
-            visitSchema(parentPath, schema, tagFilter, visitor)
+            visitSchema(visFun, parentPath, schema, tagFilter, visitor)
         }
     }
 }
 
 private fun OpenAPI.visitResponse(
+    visFun: (Any) -> Boolean,
     parentPath: List<String>,
     responseCode: String,
     response: ApiResponse,
@@ -144,14 +154,15 @@ private fun OpenAPI.visitResponse(
     visitor: Visitor
 ) {
     response.content?.let { content ->
-        visitContent(parentPath, content, tagFilter, visitor)
+        visitContent(visFun, parentPath, content, tagFilter, visitor)
     }
     response.headers.orEmpty().forEach { (headerName, header) ->
-        visitHeader(parentPath + headerName, headerName, header, tagFilter, visitor)
+        visitHeader(visFun, parentPath + headerName, headerName, header, tagFilter, visitor)
     }
 }
 
 private fun OpenAPI.visitHeader(
+    visFun: (Any) -> Boolean,
     parentPath: List<String>,
     headerName: String,
     header: Header,
@@ -159,48 +170,60 @@ private fun OpenAPI.visitHeader(
     visitor: Visitor
 ) {
     header.schema?.let { schema ->
-        visitSchema(parentPath, schema, tagFilter, visitor)
+        visitSchema(visFun, parentPath, schema, tagFilter, visitor)
     }
     header.content?.let { content ->
-        visitContent(parentPath , content, tagFilter, visitor)
+        visitContent(visFun, parentPath, content, tagFilter, visitor)
     }
 }
 
 private fun OpenAPI.visitSchema(
+    visFun: (Any) -> Boolean,
     parentPath: List<String>,
     schema: Schema<*>,
     tagFilter: TagFilter,
     visitor: Visitor
 ) {
+    if (!visFun(schema)) {
+        return
+    }
+    val refType = schema.getRefTypeName()
+    if (refType != null) {
+        components?.schemas.orEmpty()[refType]?.let { refSchema ->
+            visitSchema(visFun, parentPath + "ref", refSchema, tagFilter, visitor)
+        }
+        return
+    }
+
     visitor.invoke(parentPath, schema)
 
     when (schema) {
         is ComposedSchema -> {
             schema.oneOf?.forEach { s ->
-                visitSchema(parentPath + "oneOf", s, tagFilter, visitor)
+                visitSchema(visFun, parentPath + "oneOf", s, tagFilter, visitor)
             }
             schema.allOf?.forEach { s ->
-                visitSchema(parentPath + "allOf", s, tagFilter, visitor)
+                visitSchema(visFun, parentPath + "allOf", s, tagFilter, visitor)
             }
             schema.anyOf?.forEach { s ->
-                visitSchema(parentPath + "anyOf", s, tagFilter, visitor)
+                visitSchema(visFun, parentPath + "anyOf", s, tagFilter, visitor)
             }
         }
         is ArraySchema -> {
             schema.items?.let { items ->
-                visitSchema(parentPath + "items", items, tagFilter, visitor)
+                visitSchema(visFun, parentPath + "items", items, tagFilter, visitor)
             }
         }
         is MapSchema -> {
             (schema.additionalProperties as? Schema<*>)?.let { additionalProperties ->
-                visitSchema(parentPath + "additionalProperties", additionalProperties, tagFilter, visitor)
+                visitSchema(visFun, parentPath + "additionalProperties", additionalProperties, tagFilter, visitor)
             }
         }
     }
     schema.not?.let { not ->
-        visitSchema(parentPath + "not", not, tagFilter, visitor)
+        visitSchema(visFun, parentPath + "not", not, tagFilter, visitor)
     }
     schema.properties.orEmpty().forEach { (propertyName, property) ->
-        visitSchema(parentPath + propertyName, property, tagFilter, visitor)
+        visitSchema(visFun, parentPath + propertyName, property, tagFilter, visitor)
     }
 }
