@@ -185,7 +185,7 @@ class ApiFilesGenerator(
                 } else {
                     returns(PoetConstants.OK_RESPONSE_BODY, descriptionBlock)
                 }
-            } ?: returns(Unit::class, descriptionBlock)
+            } ?: returns(PoetConstants.RETROFIT_RESPONSE.parameterizedBy(UNIT), descriptionBlock)
         }
     }
 }
