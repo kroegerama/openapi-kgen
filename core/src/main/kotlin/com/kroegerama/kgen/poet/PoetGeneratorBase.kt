@@ -19,7 +19,7 @@ interface IPoetGeneratorBase {
 
     fun prepareFileSpec(pkg: String, name: String, block: FileSpec.Builder.() -> Unit): FileSpec
     fun createParameterAnnotation(parameterType: ParameterType, name: String): AnnotationSpec
-    fun createPartAnnotation(name: String): AnnotationSpec
+    fun createPartAnnotation(name: String?): AnnotationSpec
     fun createFieldAnnotation(name: String): AnnotationSpec
     fun createHttpMethodAnnotation(method: PathItem.HttpMethod, path: String): AnnotationSpec
     fun createJsonAnnotation(name: String): AnnotationSpec
@@ -49,9 +49,9 @@ class PoetGeneratorBase(
             addMember("%S", name)
         }
 
-    override fun createPartAnnotation(name: String) =
+    override fun createPartAnnotation(name: String?) =
         poetAnnotation(PoetConstants.RETROFIT_PART) {
-            addMember("%S", name)
+            name?.let { addMember("%S", it) }
         }
 
     override fun createFieldAnnotation(name: String) =

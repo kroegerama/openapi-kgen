@@ -9,10 +9,7 @@ import com.kroegerama.kgen.openapi.*
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import io.swagger.v3.oas.models.OpenAPI
-import io.swagger.v3.oas.models.media.ArraySchema
-import io.swagger.v3.oas.models.media.BinarySchema
-import io.swagger.v3.oas.models.media.MapSchema
-import io.swagger.v3.oas.models.media.Schema
+import io.swagger.v3.oas.models.media.*
 
 interface IPoetGeneratorSchemaHandler {
     fun Schema<*>.createNamedPrimitive(name: ClassName): Pair<TypeSpec, FunSpec>
@@ -91,7 +88,19 @@ class PoetGeneratorSchemaHandler(
 
         description?.let { addKdoc("%L\n", it) }
 
-        val propSpecs = properties.orEmpty().map { (propertyName, propertySchema) ->
+        val allProperties = mutableMapOf<String, Schema<*>>()
+        properties?.let(allProperties::putAll)
+
+        if (this@asTypeSpec is ComposedSchema) {
+            //allOf is handled by properties, because
+            //isFlattenComposedSchemas == true
+
+            //TODO: Better handling of anyOf/oneOf -> e.g. use discriminator
+            anyOf?.mapNotNull(Schema<*>::getProperties)?.forEach(allProperties::putAll)
+            oneOf?.mapNotNull(Schema<*>::getProperties)?.forEach(allProperties::putAll)
+        }
+
+        val propSpecs = allProperties.map { (propertyName, propertySchema) ->
             val fieldName = propertyName.asFieldName()
             val isNullable = isNullable(required.orEmpty().contains(propertyName), propertySchema.nullable)
             val fieldType = analyzer.findNameFor(propertySchema).nullable(isNullable)
@@ -117,13 +126,14 @@ class PoetGeneratorSchemaHandler(
             val propertyNullable = isNullable(this, propertyName, propertySchema)
 
             val typeName = when (propertySchema) {
-                is BinarySchema -> PoetConstants.OK_REQUEST_BODY
+                is BinarySchema -> if (isMultipart) PoetConstants.OK_MULTIPART_PART else PoetConstants.OK_REQUEST_BODY
                 is ArraySchema -> LIST.parameterizedBy(PoetConstants.OK_REQUEST_BODY)
                 else -> analyzer.findNameFor(propertySchema)
             }.nullable(!required || propertyNullable)
 
             val ifaceParam = poetParameter(propertyName.asFieldName(), typeName) {
-                val annotation = if (isMultipart) createPartAnnotation(propertyName) else createFieldAnnotation(propertyName)
+                val annotationValue = if (propertySchema is BinarySchema) null else propertyName
+                val annotation = if (isMultipart) createPartAnnotation(annotationValue) else createFieldAnnotation(propertyName)
                 addAnnotation(annotation)
             }
             val delegateParam = poetParameter(propertyName.asFieldName(), typeName) {

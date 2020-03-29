@@ -23,7 +23,16 @@ fun OpenAPI.getAllOperations(
     }
 
     paths.orEmpty().forEach eachPath@{ (path, pathItem) ->
+        val pathServerOverridden = pathItem.servers?.firstOrNull { it.url != null }?.url
         pathItem.readOperationsMap().orEmpty().forEach eachOp@{ (method, operation) ->
+            val operationServerOverridden = operation.servers?.firstOrNull { it.url != null }?.url
+
+            val operationPath = when {
+                operationServerOverridden != null -> "$operationServerOverridden$path"
+                pathServerOverridden != null -> "$pathServerOverridden$path"
+                else -> path
+            }
+
             val operationTags = operation.tags ?: listOf(Constants.FALLBACK_TAG)
             val operationSecurity = operation.security?.flatMap { requirement ->
                 requirement.keys
@@ -42,7 +51,7 @@ fun OpenAPI.getAllOperations(
 
             result.add(
                 OperationWithInfo(
-                    path = path,
+                    path = operationPath,
                     method = method,
                     operation = operation,
                     tags = operationTags,

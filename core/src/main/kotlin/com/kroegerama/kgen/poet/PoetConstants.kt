@@ -12,6 +12,7 @@ object PoetConstants {
 
     val MOSHI_JSON = ClassName(PKG_MOSHI, "Json")
     val MOSHI_JSON_CLASS = ClassName(PKG_MOSHI, "JsonClass")
+    val MOSHI_BUILDER = ClassName(PKG_MOSHI, "Moshi", "Builder")
 
     val RETROFIT_GET = ClassName(PKG_RETROFIT_HTTP, "GET")
     val RETROFIT_POST = ClassName(PKG_RETROFIT_HTTP, "POST")
@@ -46,6 +47,7 @@ object PoetConstants {
 
     val OK_REQUEST_BODY = ClassName(PKG_OK, "RequestBody")
     val OK_RESPONSE_BODY = ClassName(PKG_OK, "ResponseBody")
+    val OK_MULTIPART_PART = ClassName(PKG_OK, "MultipartBody", "Part")
 
     val OK_CLIENT = ClassName(PKG_OK, "OkHttpClient")
     val OK_CLIENT_BUILDER = ClassName(PKG_OK, "OkHttpClient", "Builder")

@@ -13,7 +13,7 @@ object Constants {
 
     const val FALLBACK_TAG = "default"
 
-    const val SRC_PATH = "src/main/java"
+    const val SRC_PATH = "src/main/kotlin"
 
     const val FILE_HEADER_NOTE = "NOTE: This file is auto generated. Do not edit the file manually!"
 }

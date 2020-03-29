@@ -92,6 +92,7 @@ class BaseFilesGenerator(
 
         val fnInvalidate = MemberName(cnApiHolder, "invalidate")
         val fnDecorate = MemberName(cnApiHolder, "decorate")
+        val fnCreateMoshi = MemberName(cnApiHolder, "createMoshi")
         val fnCreateClient = MemberName(cnApiHolder, "createClient")
         val fnCreateRetrofit = MemberName(cnApiHolder, "createRetrofit")
         val fnGetApi = MemberName(cnApiHolder, "getApi")
@@ -105,14 +106,19 @@ class BaseFilesGenerator(
         val mnApiHolder = MemberName(cnApiHolder, "apiHolder")
 
         val tDecorator = poetInterface(cnApiDecorator) {
+            val moshiDecorator = poetFunSpec(fnDecorate.simpleName) {
+                receiver(PoetConstants.MOSHI_BUILDER)
+                addStatement("return %T", UNIT)
+            }
             val clientDecorator = poetFunSpec(fnDecorate.simpleName) {
-                addModifiers(KModifier.ABSTRACT)
                 receiver(PoetConstants.OK_CLIENT_BUILDER)
+                addStatement("return %T", UNIT)
             }
             val retrofitDecorator = poetFunSpec(fnDecorate.simpleName) {
-                addModifiers(KModifier.ABSTRACT)
                 receiver(PoetConstants.RETROFIT_BUILDER)
+                addStatement("return %T", UNIT)
             }
+            addFunction(moshiDecorator)
             addFunction(clientDecorator)
             addFunction(retrofitDecorator)
         }
@@ -163,6 +169,15 @@ class BaseFilesGenerator(
             val fInvalidate = poetFunSpec(fnInvalidate.simpleName) {
                 addStatement("%N = null", mnCurrentClient)
                 addStatement("%N = null", mnCurrentRetrofit)
+                addStatement("%N.clear()", mnApiHolder)
+            }
+
+            val fCreateMoshi = poetFunSpec(fnCreateMoshi.simpleName) {
+                addModifiers(KModifier.PRIVATE)
+                beginControlFlow("return %T().run", PoetConstants.MOSHI_BUILDER)
+                addStatement("decorator?.apply { decorate() }")
+                addStatement("build()")
+                endControlFlow()
             }
 
             val fCreateClient = poetFunSpec(fnCreateClient.simpleName) {
@@ -180,7 +195,7 @@ class BaseFilesGenerator(
                 addStatement("baseUrl(%M.first())", MemberName(options.packageName, "serverList"))
                 addStatement("client(client)")
                 addStatement("addConverterFactory(%T.create())", ClassName("retrofit2.converter.scalars", "ScalarsConverterFactory"))
-                addStatement("addConverterFactory(%T.create())", ClassName("retrofit2.converter.moshi", "MoshiConverterFactory"))
+                addStatement("addConverterFactory(%T.create(%M()))", ClassName("retrofit2.converter.moshi", "MoshiConverterFactory"), fnCreateMoshi)
                 addStatement("addConverterFactory(%T)", ClassName(options.packageName, "EnumConverterFactory"))
                 addStatement("decorator?.apply { decorate() }")
                 addStatement("build()")
@@ -211,6 +226,7 @@ class BaseFilesGenerator(
             addProperty(pRetrofit)
             addProperty(pApiMap)
             addFunction(fInvalidate)
+            addFunction(fCreateMoshi)
             addFunction(fCreateClient)
             addFunction(fCreateRetrofit)
             addFunction(fGetApi)
