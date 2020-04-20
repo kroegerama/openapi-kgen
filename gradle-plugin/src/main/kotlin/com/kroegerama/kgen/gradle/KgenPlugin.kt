@@ -91,7 +91,7 @@ class KgenPlugin : Plugin<Project> {
         add("implementation", "com.squareup.moshi:moshi-adapters:$moshi")
         add("kapt", "com.squareup.moshi:moshi-kotlin-codegen:$moshi")
 
-        val okhttp = "4.4.1"
+        val okhttp = "4.5.0"
         add("implementation", "com.squareup.okhttp3:okhttp:$okhttp")
 
         val retrofit = "2.8.1"

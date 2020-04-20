@@ -43,7 +43,10 @@ fun Schema<*>.mapToTypeName(): ClassName = when (this) {
     is PasswordSchema -> STRING
     is UUIDSchema -> STRING
 
-    else -> throw IllegalStateException("Schema not supported: ${this.type}")
+    is DateSchema -> STRING
+    is DateTimeSchema -> STRING
+
+    else -> throw IllegalStateException("Schema not supported: ${this.javaClass.simpleName} (type: ${this.type}, format: ${this.format})")
 }
 
 fun Schema<*>.getSchemaType() = when {

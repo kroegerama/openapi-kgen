@@ -73,15 +73,14 @@ class ModelFilesGenerator(
         prepareFileSpec(options.modelPackage, name.asClassFileName()) {
             val className = ClassName(options.modelPackage, name.asTypeName())
             val rootType = schema.asTypeSpec(className) {
-                addChildren(this, children)
+                addChildren(children)
             }
 
             addType(rootType)
         }
     }
 
-    private fun addChildren(
-        builder: TypeSpec.Builder,
+    private fun TypeSpec.Builder.addChildren(
         items: MutableSet<ModelTreeNode>
     ) {
         items.forEach { (schemaInfo, children) ->
@@ -91,12 +90,12 @@ class ModelFilesGenerator(
             val className = ClassName(options.modelPackage, name.asTypeName())
 
             val type = when (val type = schemaInfo.schemaType) {
-                SchemaType.Object -> schema.asTypeSpec(className) { addChildren(this, children) }
+                SchemaType.Object -> schema.asTypeSpec(className) { addChildren(children) }
                 SchemaType.Enum -> schema.asEnumSpec(className)
                 SchemaType.Composition -> TODO()
                 else -> throw IllegalStateException("Type $type not allowed in ModelTree")
             }
-            builder.addType(type)
+            addType(type)
         }
     }
 
