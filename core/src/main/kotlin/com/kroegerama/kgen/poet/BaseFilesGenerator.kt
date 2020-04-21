@@ -175,6 +175,7 @@ class BaseFilesGenerator(
             val fCreateMoshi = poetFunSpec(fnCreateMoshi.simpleName) {
                 addModifiers(KModifier.PRIVATE)
                 beginControlFlow("return %T().run", PoetConstants.MOSHI_BUILDER)
+                addStatement("add(%T::class.java, %T())", PoetConstants.DATE, PoetConstants.RFCDateAdapter)
                 addStatement("decorator?.apply { decorate() }")
                 addStatement("build()")
                 endControlFlow()

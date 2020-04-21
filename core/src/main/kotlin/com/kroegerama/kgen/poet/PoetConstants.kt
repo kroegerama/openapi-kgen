@@ -2,6 +2,8 @@ package com.kroegerama.kgen.poet
 
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.MemberName
+import com.squareup.kotlinpoet.asClassName
+import java.util.*
 
 object PoetConstants {
 
@@ -60,4 +62,7 @@ object PoetConstants {
     val LIST_OF = MemberName("kotlin.collections", "listOf")
     val MUTABLE_MAP_OF = MemberName("kotlin.collections", "mutableMapOf")
     val EXCEPTION = ClassName("kotlin", "Exception")
+
+    val DATE = Date::class.asClassName()
+    val RFCDateAdapter = ClassName("com.squareup.moshi.adapters", "Rfc3339DateJsonAdapter")
 }
