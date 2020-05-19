@@ -91,10 +91,10 @@ class KgenPlugin : Plugin<Project> {
         add("implementation", "com.squareup.moshi:moshi-adapters:$moshi")
         add("kapt", "com.squareup.moshi:moshi-kotlin-codegen:$moshi")
 
-        val okhttp = "4.5.0"
+        val okhttp = "4.7.1"
         add("implementation", "com.squareup.okhttp3:okhttp:$okhttp")
 
-        val retrofit = "2.8.1"
+        val retrofit = "2.8.2"
         add("implementation", "com.squareup.retrofit2:retrofit:$retrofit")
         add("implementation", "com.squareup.retrofit2:converter-moshi:$retrofit")
         add("implementation", "com.squareup.retrofit2:converter-scalars:$retrofit")

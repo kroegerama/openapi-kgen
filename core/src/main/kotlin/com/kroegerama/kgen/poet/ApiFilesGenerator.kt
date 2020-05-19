@@ -36,6 +36,8 @@ class ApiFilesGenerator(
         prepareFileSpec(options.apiPackage, apiName.asClassFileName()) {
             val className = ClassName(options.apiPackage, apiName.asTypeName())
             val apiInterface = poetInterface(className) {
+                addAnnotation(JvmSuppressWildcards::class)
+
                 val companion = TypeSpec.companionObjectBuilder()
 
                 operations.forEach { opInfo ->
