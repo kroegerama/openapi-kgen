@@ -22,6 +22,7 @@ open class KgenTask : DefaultTask() {
     }
 
     @InputFile
+    @PathSensitive(PathSensitivity.RELATIVE)
     @Optional
     val specFile = project.objects.property<File>()
 
@@ -40,7 +41,6 @@ open class KgenTask : DefaultTask() {
     val useInlineClasses = project.objects.property<Boolean>()
 
     @OutputDirectory
-    @PathSensitive(PathSensitivity.NONE)
     val output = project.objects.property<File>()
 
     fun setProperties(extension: KgenExtension, outputFolder: File) {
