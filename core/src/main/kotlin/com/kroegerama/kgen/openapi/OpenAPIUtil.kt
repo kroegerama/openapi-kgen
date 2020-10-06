@@ -27,7 +27,9 @@ enum class SchemaType(
     Enum("Enum"),
     Array("Arr"),
     Map("Map"),
-    Composition("Comp"),
+    AllOf("AllOf"),
+    OneOf("OneOf"),
+    AnyOf("AnyOf"),
     Ref("Ref")
 }
 

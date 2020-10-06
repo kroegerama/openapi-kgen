@@ -106,11 +106,13 @@ class OpenAPIAnalyzer(
                 when (schemaInfo.schemaType) {
                     SchemaType.Array -> namedArrays.add(schemaInfo)
                     SchemaType.Map -> namedMaps.add(schemaInfo)
-                    SchemaType.Composition -> rootSchemas.add(schemaInfo)
                     SchemaType.Primitive -> namedPrimitives.add(schemaInfo)
                     SchemaType.Enum -> enums.add(schemaInfo)
                     SchemaType.Object -> rootSchemas.add(schemaInfo)
                     SchemaType.Ref -> throw IllegalStateException("ref should already be resolved")
+                    SchemaType.AllOf -> rootSchemas.add(schemaInfo)
+                    SchemaType.OneOf -> rootSchemas.add(schemaInfo)
+                    SchemaType.AnyOf -> rootSchemas.add(schemaInfo)
                 }
             } else if (schemaType !in ignoredAnonymousTypes) {
                 unnamedSchemas.add(schemaInfo)
@@ -206,8 +208,10 @@ class OpenAPIAnalyzer(
                 val refType = openAPI.components.schemas[refTypeName] ?: throw IllegalStateException("Schema not found $refTypeName")
                 findTypeNameFor(refType)
             }
-            SchemaType.Object -> schema.mapToTypeName()
-            SchemaType.Composition -> schema.mapToTypeName()
+            SchemaType.Object,
+            SchemaType.AllOf,
+            SchemaType.OneOf,
+            SchemaType.AnyOf -> throw IllegalStateException()
         }
     }
 

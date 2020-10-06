@@ -73,7 +73,12 @@ fun Schema<*>.getSchemaType() = when {
     this is ArraySchema -> SchemaType.Array
     this is MapSchema -> SchemaType.Map
     this is ObjectSchema -> SchemaType.Object
-    this is ComposedSchema -> SchemaType.Composition
+    this is ComposedSchema -> when {
+        allOf != null -> SchemaType.AllOf
+        oneOf != null -> SchemaType.OneOf
+        anyOf != null -> SchemaType.AnyOf
+        else -> SchemaType.Object
+    }
 
     `$ref` != null -> SchemaType.Ref
     else -> SchemaType.Object
