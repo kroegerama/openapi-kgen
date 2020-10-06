@@ -32,25 +32,25 @@ fun String.asBaseUrl(): String {
 }
 
 fun Info.asFileHeader() = buildString {
-    appendln(Constants.FILE_HEADER_NOTE)
-    appendln()
-    appendln(title)
-    description?.let { appendln(it) }
-    appendln("Version $version")
+    appendLine(Constants.FILE_HEADER_NOTE)
+    appendLine()
+    appendLine(title)
+    description?.let { appendLine(it) }
+    appendLine("Version $version")
     contact?.run {
-        appendln()
-        appendln("Contact")
-        name?.let { appendln("  $it") }
-        email?.let { appendln("  Mail: $it") }
-        url?.let { appendln("  URL: $it") }
+        appendLine()
+        appendLine("Contact")
+        name?.let { appendLine("  $it") }
+        email?.let { appendLine("  Mail: $it") }
+        url?.let { appendLine("  URL: $it") }
     }
     license?.run {
-        appendln()
-        appendln("Spec License")
-        name?.let { appendln("  $it") }
-        url?.let { appendln("  $it") }
+        appendLine()
+        appendLine("Spec License")
+        name?.let { appendLine("  $it") }
+        url?.let { appendLine("  $it") }
     }
-    appendln()
-    appendln("Generated ${Util.formattedDateTime}")
-    appendln(Util.generatorInfo)
+    appendLine()
+    appendLine("Generated ${Util.formattedDateTime}")
+    appendLine(Util.generatorInfo)
 }
