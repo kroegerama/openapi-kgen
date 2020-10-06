@@ -121,7 +121,7 @@ class ApiFilesGenerator(
         val schema = parameter.schema
         val paramType = parameter.mapToParameterType()
 
-        val type = analyzer.findNameFor(schema).let { typeName ->
+        val type = analyzer.findTypeNameFor(schema).let { typeName ->
             if (parameter.required) {
                 typeName
             } else {
@@ -148,7 +148,7 @@ class ApiFilesGenerator(
         val (mime, required, schema) = request
         return when (mime.mapMimeToRequestType()) {
             OperationRequestType.Default -> {
-                val typeName = analyzer.findNameFor(schema)
+                val typeName = analyzer.findTypeNameFor(schema)
                 val ifaceBodyParam = poetParameter("body", typeName.nullable(!required)) {
                     addAnnotation(PoetConstants.RETROFIT_BODY)
                 }
@@ -179,7 +179,7 @@ class ApiFilesGenerator(
                 }.build() else CodeBlock.builder().build()
 
             schemaWithMime?.let { (mime, _, schema) ->
-                val typeName = analyzer.findNameFor(schema)
+                val typeName = analyzer.findTypeNameFor(schema)
                 val responseType = PoetConstants.RETROFIT_RESPONSE.parameterizedBy(typeName)
 
                 if (mime == Constants.MIME_TYPE_JSON) {

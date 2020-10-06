@@ -6,7 +6,7 @@ import io.swagger.v3.oas.models.media.Schema
 
 data class ModelTree(
     val nodes: List<ModelTreeNode>,
-    val unknown: List<AnySchemaWithInfo>
+    val unknown: List<SchemaWithInfo>
 ) {
 
     val isEmpty get() = nodes.isEmpty() && unknown.isEmpty()
@@ -54,7 +54,7 @@ data class ModelTree(
         return null
     }
 
-    private fun SchemaWithInfo<*>.findParamName(parameter: Schema<*>): String? = if (schema is ObjectSchema) {
+    private fun SchemaWithInfo.findParamName(parameter: Schema<*>): String? = if (schema is ObjectSchema) {
         schema.properties.orEmpty().filterValues { it === parameter }.keys.firstOrNull()
     } else {
         null
@@ -63,7 +63,7 @@ data class ModelTree(
 }
 
 data class ModelTreeNode(
-    val schemaInfo: SchemaWithInfo<*>,
+    val schemaInfo: SchemaWithInfo,
     val children: MutableSet<ModelTreeNode>
 ) {
     override fun equals(other: Any?): Boolean {

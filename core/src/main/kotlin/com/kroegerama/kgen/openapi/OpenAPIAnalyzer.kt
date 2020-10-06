@@ -2,7 +2,10 @@ package com.kroegerama.kgen.openapi
 
 import com.kroegerama.kgen.OptionSet
 import com.kroegerama.kgen.language.asTypeName
-import com.kroegerama.kgen.model.*
+import com.kroegerama.kgen.model.ModelTree
+import com.kroegerama.kgen.model.ModelTreeNode
+import com.kroegerama.kgen.model.OperationWithInfo
+import com.kroegerama.kgen.model.SchemaWithInfo
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import io.swagger.v3.oas.models.OpenAPI
@@ -21,10 +24,10 @@ class OpenAPIAnalyzer(
 
     private val allNamedSchemas: Map<String, Schema<*>>
 
-    val namedPrimitives = TreeSet<AnySchemaWithInfo>()
-    val namedArrays = TreeSet<ArraySchemaWithInfo>()
-    val namedMaps = TreeSet<MapSchemaWithInfo>()
-    val enums = TreeSet<AnySchemaWithInfo>()
+    val namedPrimitives = TreeSet<SchemaWithInfo>()
+    val namedArrays = TreeSet<SchemaWithInfo>()
+    val namedMaps = TreeSet<SchemaWithInfo>()
+    val enums = TreeSet<SchemaWithInfo>()
     val objectTree: ModelTree
 
     val apis = TreeMap<String, MutableList<OperationWithInfo>>()
@@ -86,8 +89,8 @@ class OpenAPIAnalyzer(
 
     private fun buildModelTree(): ModelTree {
         val allSchemaInfo = openAPI.getAllSchemas(options.limitApis)
-        val rootSchemas = mutableListOf<AnySchemaWithInfo>()
-        val unnamedSchemas = mutableListOf<AnySchemaWithInfo>()
+        val rootSchemas = mutableListOf<SchemaWithInfo>()
+        val unnamedSchemas = mutableListOf<SchemaWithInfo>()
 
         val ignoredAnonymousTypes = listOf(
             SchemaType.Primitive,
@@ -100,12 +103,14 @@ class OpenAPIAnalyzer(
             val schemaType = schemaInfo.schemaType
 
             if (name.isNotEmpty()) {
-                when (schemaType) {
+                when (schemaInfo.schemaType) {
+                    SchemaType.Array -> namedArrays.add(schemaInfo)
+                    SchemaType.Map -> namedMaps.add(schemaInfo)
+                    SchemaType.Composition -> rootSchemas.add(schemaInfo)
                     SchemaType.Primitive -> namedPrimitives.add(schemaInfo)
-                    SchemaType.Array -> namedArrays.add(schemaInfo as ArraySchemaWithInfo)
-                    SchemaType.Map -> namedMaps.add(schemaInfo as MapSchemaWithInfo)
                     SchemaType.Enum -> enums.add(schemaInfo)
-                    else -> rootSchemas.add(schemaInfo)
+                    SchemaType.Object -> rootSchemas.add(schemaInfo)
+                    SchemaType.Ref -> throw IllegalStateException("ref should already be resolved")
                 }
             } else if (schemaType !in ignoredAnonymousTypes) {
                 unnamedSchemas.add(schemaInfo)
@@ -120,7 +125,7 @@ class OpenAPIAnalyzer(
         var foundItem = true
         while (foundItem) {
             foundItem = false
-            val accepted = mutableSetOf<AnySchemaWithInfo>()
+            val accepted = mutableSetOf<SchemaWithInfo>()
 
             unnamedSchemas.forEach { unknown ->
                 val schema = unknown.schema
@@ -171,7 +176,7 @@ class OpenAPIAnalyzer(
         }
     }
 
-    fun findNameFor(schema: Schema<*>): TypeName {
+    fun findTypeNameFor(schema: Schema<*>): TypeName {
         val knownName = findRawNameFor(schema)
         if (knownName != null) return ClassName(options.modelPackage, knownName.asTypeName())
 
@@ -185,24 +190,24 @@ class OpenAPIAnalyzer(
 
         return when (schema.getSchemaType()) {
             SchemaType.Primitive -> schema.mapToTypeName()
-            SchemaType.Object -> schema.mapToTypeName()
             SchemaType.Enum -> schema.mapToTypeName()
             SchemaType.Array -> {
                 val arr = schema as ArraySchema
-                val inner = findNameFor(arr.items)
+                val inner = findTypeNameFor(arr.items)
                 LIST.parameterizedBy(inner)
             }
             SchemaType.Map -> {
                 val map = schema as MapSchema
-                val inner = findNameFor(map.additionalProperties as Schema<*>)
+                val inner = findTypeNameFor(map.additionalProperties as Schema<*>)
                 MAP.parameterizedBy(STRING, inner)
             }
-            SchemaType.Composition -> schema.mapToTypeName()
             SchemaType.Ref -> {
                 val refTypeName = schema.getRefTypeName()
                 val refType = openAPI.components.schemas[refTypeName] ?: throw IllegalStateException("Schema not found $refTypeName")
-                findNameFor(refType)
+                findTypeNameFor(refType)
             }
+            SchemaType.Object -> schema.mapToTypeName()
+            SchemaType.Composition -> schema.mapToTypeName()
         }
     }
 
@@ -213,31 +218,18 @@ class OpenAPIAnalyzer(
 
     private fun OpenAPI.getAllSchemas(
         tagFilter: TagFilter = emptySet()
-    ): Collection<SchemaWithInfo<*>> {
-        val visited = mutableSetOf<SchemaWithInfo<*>>()
+    ): Collection<SchemaWithInfo> {
+        val visited = mutableSetOf<SchemaWithInfo>()
 
         visit(tagFilter) { path, schema ->
-            val info = when (schema) {
-                is ArraySchema -> ArraySchemaWithInfo(
-                    schema = schema,
-                    rawName = findRawNameFor(schema) ?: "",
-                    schemaType = SchemaType.Array,
-                    path = path
-                )
-                is MapSchema -> MapSchemaWithInfo(
-                    schema = schema,
-                    rawName = findRawNameFor(schema) ?: "",
-                    schemaType = SchemaType.Map,
-                    path = path
-                )
-                else -> SchemaWithInfo(
+            visited.add(
+                SchemaWithInfo(
                     schema = schema,
                     rawName = findRawNameFor(schema) ?: "",
                     schemaType = schema.getSchemaType(),
                     path = path
                 )
-            }
-            visited.add(info)
+            )
         }
 
         return visited

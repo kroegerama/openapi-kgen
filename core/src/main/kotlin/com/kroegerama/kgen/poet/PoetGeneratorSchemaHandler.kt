@@ -52,7 +52,7 @@ class PoetGeneratorSchemaHandler(
         }
 
     override fun ArraySchema.createArrayTypeAlias(name: String): TypeAliasSpec {
-        val innerType = analyzer.findNameFor(items)
+        val innerType = analyzer.findTypeNameFor(items)
         val listType = LIST.parameterizedBy(innerType)
 
         return poetTypeAlias(name.asTypeName(), listType) {
@@ -63,7 +63,7 @@ class PoetGeneratorSchemaHandler(
     override fun MapSchema.createMapTypeAlias(name: String): TypeAliasSpec {
         val valueSchema = additionalProperties as? Schema<*>
         val valueType = valueSchema?.let {
-            analyzer.findNameFor(valueSchema)
+            analyzer.findTypeNameFor(valueSchema)
         } ?: ANY
         val mapType = MAP.parameterizedBy(STRING, valueType)
 
@@ -103,7 +103,7 @@ class PoetGeneratorSchemaHandler(
         val propSpecs = allProperties.map { (propertyName, propertySchema) ->
             val fieldName = propertyName.asFieldName()
             val isNullable = isNullable(required.orEmpty().contains(propertyName), propertySchema.nullable)
-            val fieldType = analyzer.findNameFor(propertySchema).nullable(isNullable)
+            val fieldType = analyzer.findTypeNameFor(propertySchema).nullable(isNullable)
 
             propertySchema.description?.let {
                 addKdoc("@param %L %L\n", fieldName, it)
@@ -128,7 +128,7 @@ class PoetGeneratorSchemaHandler(
             val typeName = when (propertySchema) {
                 is BinarySchema -> if (isMultipart) PoetConstants.OK_MULTIPART_PART else PoetConstants.OK_REQUEST_BODY
                 is ArraySchema -> LIST.parameterizedBy(PoetConstants.OK_REQUEST_BODY)
-                else -> analyzer.findNameFor(propertySchema)
+                else -> analyzer.findTypeNameFor(propertySchema)
             }.nullable(!required || propertyNullable)
 
             val ifaceParam = poetParameter(propertyName.asFieldName(), typeName) {

@@ -8,6 +8,8 @@ import com.kroegerama.kgen.openapi.OpenAPIAnalyzer
 import com.kroegerama.kgen.openapi.SchemaType
 import com.squareup.kotlinpoet.*
 import io.swagger.v3.oas.models.OpenAPI
+import io.swagger.v3.oas.models.media.ArraySchema
+import io.swagger.v3.oas.models.media.MapSchema
 
 interface IModelFilesGenerator {
     fun getModelFiles(): List<FileSpec>
@@ -121,12 +123,12 @@ class ModelFilesGenerator(
             namedArrays.forEach { schemaInfo ->
                 val schema = schemaInfo.schema
                 val name = schemaInfo.name
-                add(schema.createArrayTypeAlias(name))
+                add((schema as ArraySchema).createArrayTypeAlias(name))
             }
             namedMaps.forEach { schemaInfo ->
                 val schema = schemaInfo.schema
                 val name = schemaInfo.name
-                add(schema.createMapTypeAlias(name))
+                add((schema as MapSchema).createMapTypeAlias(name))
             }
         }
     }
