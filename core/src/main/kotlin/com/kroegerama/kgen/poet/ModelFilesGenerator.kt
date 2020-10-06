@@ -91,10 +91,10 @@ class ModelFilesGenerator(
 
             val className = ClassName(options.modelPackage, name.asTypeName())
 
+            //only use Objects and Enums as child classes/enums (see OpenApiAnalyzer#buildModelTree)
             val type = when (val type = schemaInfo.schemaType) {
                 SchemaType.Object -> schema.asTypeSpec(className) { addChildren(children) }
                 SchemaType.Enum -> schema.asEnumSpec(className)
-                SchemaType.Composition -> TODO()
                 else -> throw IllegalStateException("Type $type not allowed in ModelTree")
             }
             addType(type)
