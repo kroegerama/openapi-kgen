@@ -70,10 +70,11 @@ fun OpenAPI.visit(
 ) {
     val marker = Any()
     val visited = IdentityHashMap<Any, Any>()
-    fun visit(obj: Any) = visited.put(obj, marker) == null
 
     paths.orEmpty().forEach { (pathName, pathItem) ->
-        visitPathItem(::visit, pathName, pathItem, tagFilter, visitor)
+        visitPathItem({ obj ->
+            visited.put(obj, marker) == null
+        }, pathName, pathItem, tagFilter, visitor)
     }
 }
 
