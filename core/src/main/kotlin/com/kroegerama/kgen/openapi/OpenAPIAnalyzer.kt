@@ -10,6 +10,7 @@ import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.media.ArraySchema
+import io.swagger.v3.oas.models.media.ComposedSchema
 import io.swagger.v3.oas.models.media.MapSchema
 import io.swagger.v3.oas.models.media.Schema
 import io.swagger.v3.oas.models.security.SecurityScheme
@@ -68,6 +69,11 @@ class OpenAPIAnalyzer(
                 objectTree.nodes.forEach { println("\t$it") }
                 println()
             }
+            if (objectTree.oneOfs.isNotEmpty()) {
+                println("OneOf")
+                objectTree.oneOfs.forEach { println("\t$it") }
+                println()
+            }
             if (objectTree.unknown.isNotEmpty()) {
                 println("Unknown")
                 objectTree.unknown.forEach { println("\t$it") }
@@ -91,6 +97,7 @@ class OpenAPIAnalyzer(
         val allSchemaInfo = openAPI.getAllSchemas(options.limitApis)
         val rootSchemas = mutableListOf<SchemaWithInfo>()
         val unnamedSchemas = mutableListOf<SchemaWithInfo>()
+        val oneOfs = mutableMapOf<SchemaWithInfo, MutableMap<String, SchemaWithInfo>>()
 
         val ignoredAnonymousTypes = listOf(
             SchemaType.Primitive,
@@ -111,18 +118,33 @@ class OpenAPIAnalyzer(
                     SchemaType.Object -> rootSchemas.add(schemaInfo)
                     SchemaType.Ref -> throw IllegalStateException("ref should already be resolved")
                     SchemaType.AllOf -> rootSchemas.add(schemaInfo)
-                    SchemaType.OneOf -> rootSchemas.add(schemaInfo)
+                    SchemaType.OneOf -> oneOfs[schemaInfo] = mutableMapOf()
                     SchemaType.AnyOf -> rootSchemas.add(schemaInfo)
                 }
             } else if (schemaType !in ignoredAnonymousTypes) {
                 unnamedSchemas.add(schemaInfo)
             }
         }
+        oneOfs.forEach { (parent, children) ->
+            val composed = parent.schema as ComposedSchema
+            val mapping = composed.discriminator.mapping.orEmpty()
+            composed.oneOf.forEach { childSchema ->
+                val child = rootSchemas.firstOrNull { it.schema === childSchema }
+                    ?: throw IllegalStateException("could not find schema for oneOf ${parent.name}")
+
+                val mappedName = mapping.entries.firstOrNull { (_, value: String) ->
+                    value.endsWith("/${child.name}")
+                }?.key ?: child.name
+
+                children[mappedName] = child
+                rootSchemas.remove(child)
+            }
+        }
 
         val root = rootSchemas.map { schemaInfo ->
             ModelTreeNode(schemaInfo, HashSet())
         }
-        val tmpTree = ModelTree(root, emptyList())
+        val tmpTree = ModelTree(root, emptyMap(), emptyList())
 
         var foundItem = true
         while (foundItem) {
@@ -163,7 +185,7 @@ class OpenAPIAnalyzer(
             unnamed.withName(name)
         }
 
-        return ModelTree(tmpTree.nodes, generatedNames)
+        return ModelTree(tmpTree.nodes, oneOfs, generatedNames)
     }
 
     private fun initApis() {

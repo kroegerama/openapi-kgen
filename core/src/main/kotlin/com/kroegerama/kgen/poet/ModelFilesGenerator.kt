@@ -24,7 +24,7 @@ class ModelFilesGenerator(
     IPoetGeneratorBase by PoetGeneratorBase(openAPI, options, analyzer) {
 
     override fun getModelFiles() =
-        getPrimitivesFile() + getEnumsFile() + getObjectFiles() + getUnnamedObjectFiles()
+        getPrimitivesFile() + getEnumsFile() + getObjectFiles() + getUnnamedObjectFiles() + getOneOfFiles()
 
     private fun getPrimitivesFile(): List<FileSpec> {
         val namedPrimitives = getNamedPrimitives()
@@ -65,6 +65,27 @@ class ModelFilesGenerator(
             val className = ClassName(options.modelPackage, name.asTypeName())
             val type = schema.asTypeSpec(className) {}
             addType(type)
+        }
+    }
+
+    private fun getOneOfFiles(): List<FileSpec> = analyzer.objectTree.oneOfs.map { (parent, children) ->
+        val name = parent.name
+        prepareFileSpec(options.modelPackage, name.asTypeName()) {
+            val parentClass = ClassName(options.modelPackage, name.asTypeName())
+            val parentType = parent.schema.asSealedTypeSpec(parentClass) {
+            }
+
+            addType(parentType)
+            val types = children.map { (childName, childSpec) ->
+                val childClassName = ClassName(options.modelPackage, childSpec.name.asTypeName())
+                childSpec.schema.asTypeSpec(childClassName) {
+                    addAnnotation(poetAnnotation(PoetConstants.SEALED_TYPE_LABEL) {
+                        addMember("\"$childName\"")
+                    })
+                    superclass(parentClass)
+                }
+            }
+            types.forEach(::addType)
         }
     }
 

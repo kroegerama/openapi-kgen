@@ -14,6 +14,7 @@ object PoetConstants {
 
     val MOSHI_JSON = ClassName(PKG_MOSHI, "Json")
     val MOSHI_JSON_CLASS = ClassName(PKG_MOSHI, "JsonClass")
+    val MOSHI = ClassName(PKG_MOSHI, "Moshi")
     val MOSHI_BUILDER = ClassName(PKG_MOSHI, "Moshi", "Builder")
 
     val RETROFIT_GET = ClassName(PKG_RETROFIT_HTTP, "GET")
@@ -65,4 +66,6 @@ object PoetConstants {
 
     val DATE = Date::class.asClassName()
     val RFCDateAdapter = ClassName("com.squareup.moshi.adapters", "Rfc3339DateJsonAdapter")
+
+    val SEALED_TYPE_LABEL = ClassName("dev.zacsweers.moshix.sealed.annotations", "TypeLabel")
 }

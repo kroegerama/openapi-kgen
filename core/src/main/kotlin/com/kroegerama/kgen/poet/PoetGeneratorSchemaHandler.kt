@@ -18,6 +18,7 @@ interface IPoetGeneratorSchemaHandler {
     fun MapSchema.createMapTypeAlias(name: String): TypeAliasSpec
     fun Schema<*>.asEnumSpec(className: ClassName): TypeSpec
     fun Schema<*>.asTypeSpec(className: ClassName, block: TypeSpec.Builder.() -> Unit): TypeSpec
+    fun Schema<*>.asSealedTypeSpec(className: ClassName, block: TypeSpec.Builder.() -> Unit): TypeSpec
     fun Schema<*>.convertToParameters(required: Boolean, isMultipart: Boolean): List<ParameterSpecPair>
 }
 
@@ -83,6 +84,15 @@ class PoetGeneratorSchemaHandler(
         }
     }
 
+    override fun Schema<*>.asSealedTypeSpec(className: ClassName, block: TypeSpec.Builder.() -> Unit) = poetClass(className) {
+        addModifiers(KModifier.SEALED)
+        description?.let { addKdoc("%L\n", it) }
+
+        apply(block)
+        val discriminator = (this@asSealedTypeSpec as ComposedSchema).discriminator.propertyName
+        addAnnotation(createJsonClassAnnotation(discriminator))
+    }
+
     override fun Schema<*>.asTypeSpec(className: ClassName, block: TypeSpec.Builder.() -> Unit) = poetClass(className) {
         addModifiers(KModifier.DATA)
 
@@ -97,7 +107,7 @@ class PoetGeneratorSchemaHandler(
 
             //TODO: Better handling of anyOf/oneOf -> e.g. use discriminator
             anyOf?.mapNotNull(Schema<*>::getProperties)?.forEach(allProperties::putAll)
-            oneOf?.mapNotNull(Schema<*>::getProperties)?.forEach(allProperties::putAll)
+//            oneOf?.mapNotNull(Schema<*>::getProperties)?.forEach(allProperties::putAll)
         }
 
         val propSpecs = allProperties.map { (propertyName, propertySchema) ->
@@ -109,7 +119,9 @@ class PoetGeneratorSchemaHandler(
                 addKdoc("@param %L %L\n", fieldName, it)
             }
 
+            val isMutable = propertySchema.extensions.orEmpty()["x-kgen-variable"] as? Boolean == true
             poetProperty(fieldName, fieldType) {
+                mutable(isMutable)
                 addAnnotation(createJsonAnnotation(propertyName))
             }
         }

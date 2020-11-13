@@ -23,7 +23,7 @@ interface IPoetGeneratorBase {
     fun createFieldAnnotation(name: String): AnnotationSpec
     fun createHttpMethodAnnotation(method: PathItem.HttpMethod, path: String): AnnotationSpec
     fun createJsonAnnotation(name: String): AnnotationSpec
-    fun createJsonClassAnnotation(): AnnotationSpec
+    fun createJsonClassAnnotation(discriminator: String? = null): AnnotationSpec
 }
 
 class PoetGeneratorBase(
@@ -69,9 +69,12 @@ class PoetGeneratorBase(
             addMember("name = %S", name)
         }
 
-    override fun createJsonClassAnnotation() =
+    override fun createJsonClassAnnotation(discriminator: String?) =
         poetAnnotation(PoetConstants.MOSHI_JSON_CLASS) {
             addMember("generateAdapter = true")
+            if (discriminator != null) {
+                addMember("generator = \"sealed:$discriminator\"")
+            }
         }
 
 }

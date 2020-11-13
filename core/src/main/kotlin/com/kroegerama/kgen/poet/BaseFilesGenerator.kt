@@ -102,6 +102,8 @@ class BaseFilesGenerator(
         val mnCurrentClient = MemberName(cnApiHolder, "currentClient")
         val mnRetrofit = MemberName(cnApiHolder, "retrofit")
         val mnCurrentRetrofit = MemberName(cnApiHolder, "currentRetrofit")
+        val mnMoshi = MemberName(cnApiHolder, "moshi")
+        val mnCurrentMoshi = MemberName(cnApiHolder, "currentMoshi")
 
         val mnApiHolder = MemberName(cnApiHolder, "apiHolder")
 
@@ -135,6 +137,12 @@ class BaseFilesGenerator(
                 setter(setFun)
             }
 
+            val pCurrentMoshi = poetProperty(mnCurrentMoshi.simpleName, PoetConstants.MOSHI.nullable(true)) {
+                mutable()
+                addModifiers(KModifier.PRIVATE)
+                initializer("null")
+            }
+
             val pCurrentClient = poetProperty(mnCurrentClient.simpleName, PoetConstants.OK_CLIENT.nullable(true)) {
                 mutable()
                 addModifiers(KModifier.PRIVATE)
@@ -145,6 +153,13 @@ class BaseFilesGenerator(
                 mutable()
                 addModifiers(KModifier.PRIVATE)
                 initializer("null")
+            }
+
+            val pMoshi = poetProperty(mnMoshi.simpleName, PoetConstants.MOSHI) {
+                val getFun = FunSpec.getterBuilder().apply {
+                    addStatement("return %N ?: %N().also { %N = it }", mnCurrentMoshi, fnCreateMoshi, mnCurrentMoshi)
+                }.build()
+                getter(getFun)
             }
 
             val pClient = poetProperty(mnClient.simpleName, PoetConstants.OK_CLIENT) {
@@ -167,6 +182,7 @@ class BaseFilesGenerator(
             }
 
             val fInvalidate = poetFunSpec(fnInvalidate.simpleName) {
+                addStatement("%N = null", mnCurrentMoshi)
                 addStatement("%N = null", mnCurrentClient)
                 addStatement("%N = null", mnCurrentRetrofit)
                 addStatement("%N.clear()", mnApiHolder)
@@ -176,7 +192,7 @@ class BaseFilesGenerator(
                 addModifiers(KModifier.PRIVATE)
                 beginControlFlow("return %T().run", PoetConstants.MOSHI_BUILDER)
                 addStatement("add(%T::class.java, %T())", PoetConstants.DATE, PoetConstants.RFCDateAdapter)
-                addStatement("decorator?.apply { decorate() }")
+                addStatement("%N?.apply { decorate() }", mnDecorator)
                 addStatement("build()")
                 endControlFlow()
             }
@@ -185,7 +201,7 @@ class BaseFilesGenerator(
                 addModifiers(KModifier.PRIVATE)
                 beginControlFlow("return %T().run", PoetConstants.OK_CLIENT_BUILDER)
                 addStatement("addInterceptor(%T)", cnInterceptor)
-                addStatement("decorator?.apply { decorate() }")
+                addStatement("%N?.apply { decorate() }", mnDecorator)
                 addStatement("build()")
                 endControlFlow()
             }
@@ -194,11 +210,11 @@ class BaseFilesGenerator(
                 addModifiers(KModifier.PRIVATE)
                 beginControlFlow("return %T().run", PoetConstants.RETROFIT_BUILDER)
                 addStatement("baseUrl(%M.first())", MemberName(options.packageName, "serverList"))
-                addStatement("client(client)")
+                addStatement("client(%N)", mnClient)
                 addStatement("addConverterFactory(%T.create())", ClassName("retrofit2.converter.scalars", "ScalarsConverterFactory"))
-                addStatement("addConverterFactory(%T.create(%M()))", ClassName("retrofit2.converter.moshi", "MoshiConverterFactory"), fnCreateMoshi)
+                addStatement("addConverterFactory(%T.create(%N))", ClassName("retrofit2.converter.moshi", "MoshiConverterFactory"), mnMoshi)
                 addStatement("addConverterFactory(%T)", ClassName(options.packageName, "EnumConverterFactory"))
-                addStatement("decorator?.apply { decorate() }")
+                addStatement("%N?.apply { decorate() }", mnDecorator)
                 addStatement("build()")
                 endControlFlow()
             }
@@ -221,8 +237,10 @@ class BaseFilesGenerator(
             }
 
             addProperty(pDecorator)
+            addProperty(pCurrentMoshi)
             addProperty(pCurrentClient)
             addProperty(pCurrentRetrofit)
+            addProperty(pMoshi)
             addProperty(pClient)
             addProperty(pRetrofit)
             addProperty(pApiMap)

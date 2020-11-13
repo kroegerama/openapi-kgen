@@ -86,7 +86,7 @@ class KgenPlugin : Plugin<Project> {
     }
 
     private fun Project.addDependencies() = dependencies {
-        val moshi = "1.10.0"
+        val moshi = "1.11.0"
         add("implementation", "com.squareup.moshi:moshi:$moshi")
         add("implementation", "com.squareup.moshi:moshi-adapters:$moshi")
         add("kapt", "com.squareup.moshi:moshi-kotlin-codegen:$moshi")
@@ -98,6 +98,10 @@ class KgenPlugin : Plugin<Project> {
         add("implementation", "com.squareup.retrofit2:retrofit:$retrofit")
         add("implementation", "com.squareup.retrofit2:converter-moshi:$retrofit")
         add("implementation", "com.squareup.retrofit2:converter-scalars:$retrofit")
+
+        val moshiSealed = "0.4.0"
+        add("implementation", "dev.zacsweers.moshix:moshi-sealed-runtime:$moshiSealed")
+        add("kapt", "dev.zacsweers.moshix:moshi-sealed-codegen:$moshiSealed")
     }
 
     private inline fun <reified T> ExtensionContainer.findByNameTyped(name: String): T? = findByName(name) as? T
