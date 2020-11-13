@@ -6,11 +6,10 @@ import io.swagger.v3.oas.models.media.Schema
 
 data class ModelTree(
     val nodes: List<ModelTreeNode>,
-    val oneOfs: Map<SchemaWithInfo, Map<String, SchemaWithInfo>>,
     val unknown: List<SchemaWithInfo>
 ) {
 
-    val isEmpty get() = nodes.isEmpty() && unknown.isEmpty() && oneOfs.isEmpty()
+    val isEmpty get() = nodes.isEmpty() && unknown.isEmpty()
 
     fun findName(schema: Schema<*>): List<String> {
         val anonymous = unknown.firstOrNull { it.schema === schema }

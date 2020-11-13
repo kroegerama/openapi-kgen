@@ -69,11 +69,6 @@ class OpenAPIAnalyzer(
                 objectTree.nodes.forEach { println("\t$it") }
                 println()
             }
-            if (objectTree.oneOfs.isNotEmpty()) {
-                println("OneOf")
-                objectTree.oneOfs.forEach { println("\t$it") }
-                println()
-            }
             if (objectTree.unknown.isNotEmpty()) {
                 println("Unknown")
                 objectTree.unknown.forEach { println("\t$it") }
@@ -97,7 +92,7 @@ class OpenAPIAnalyzer(
         val allSchemaInfo = openAPI.getAllSchemas(options.limitApis)
         val rootSchemas = mutableListOf<SchemaWithInfo>()
         val unnamedSchemas = mutableListOf<SchemaWithInfo>()
-        val oneOfs = mutableMapOf<SchemaWithInfo, MutableMap<String, SchemaWithInfo>>()
+        val oneOfs = mutableMapOf<SchemaWithInfo, MutableList<SchemaWithInfo>>()
 
         val ignoredAnonymousTypes = listOf(
             SchemaType.Primitive,
@@ -105,6 +100,7 @@ class OpenAPIAnalyzer(
             SchemaType.Map
         )
 
+        val removeItems = mutableListOf<SchemaWithInfo>()
         allSchemaInfo.forEach { schemaInfo ->
             val name = schemaInfo.name
             val schemaType = schemaInfo.schemaType
@@ -118,33 +114,35 @@ class OpenAPIAnalyzer(
                     SchemaType.Object -> rootSchemas.add(schemaInfo)
                     SchemaType.Ref -> throw IllegalStateException("ref should already be resolved")
                     SchemaType.AllOf -> rootSchemas.add(schemaInfo)
-                    SchemaType.OneOf -> oneOfs[schemaInfo] = mutableMapOf()
+                    SchemaType.OneOf -> {
+                        val composed = schemaInfo.schema as ComposedSchema
+                        val mapping = composed.discriminator.mapping.orEmpty()
+                        composed.oneOf.forEach { childSchema ->
+                            val child = allSchemaInfo.firstOrNull { it.schema === childSchema }
+                                ?: throw IllegalStateException("could not find schema for oneOf ${schemaInfo.name}")
+                            val mappedName = mapping.entries.firstOrNull { (_, value: String) ->
+                                value.endsWith("/${child.name}")
+                            }?.key ?: child.name
+                            child.discriminator = mappedName
+                            val children = oneOfs.getOrPut(schemaInfo) { mutableListOf() }
+                            children += child
+                            removeItems += child
+                        }
+                    }
                     SchemaType.AnyOf -> rootSchemas.add(schemaInfo)
                 }
             } else if (schemaType !in ignoredAnonymousTypes) {
                 unnamedSchemas.add(schemaInfo)
             }
         }
-        oneOfs.forEach { (parent, children) ->
-            val composed = parent.schema as ComposedSchema
-            val mapping = composed.discriminator.mapping.orEmpty()
-            composed.oneOf.forEach { childSchema ->
-                val child = rootSchemas.firstOrNull { it.schema === childSchema }
-                    ?: throw IllegalStateException("could not find schema for oneOf ${parent.name}")
-
-                val mappedName = mapping.entries.firstOrNull { (_, value: String) ->
-                    value.endsWith("/${child.name}")
-                }?.key ?: child.name
-
-                children[mappedName] = child
-                rootSchemas.remove(child)
-            }
-        }
+        rootSchemas.removeAll(removeItems)
 
         val root = rootSchemas.map { schemaInfo ->
             ModelTreeNode(schemaInfo, HashSet())
+        } + oneOfs.map { (schemaInfo, children) ->
+            ModelTreeNode(schemaInfo, children.map { ModelTreeNode(it, HashSet()) }.toMutableSet())
         }
-        val tmpTree = ModelTree(root, emptyMap(), emptyList())
+        val tmpTree = ModelTree(root, emptyList())
 
         var foundItem = true
         while (foundItem) {
@@ -185,7 +183,7 @@ class OpenAPIAnalyzer(
             unnamed.withName(name)
         }
 
-        return ModelTree(tmpTree.nodes, oneOfs, generatedNames)
+        return ModelTree(tmpTree.nodes, generatedNames)
     }
 
     private fun initApis() {

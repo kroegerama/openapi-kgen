@@ -24,7 +24,7 @@ class ModelFilesGenerator(
     IPoetGeneratorBase by PoetGeneratorBase(openAPI, options, analyzer) {
 
     override fun getModelFiles() =
-        getPrimitivesFile() + getEnumsFile() + getObjectFiles() + getUnnamedObjectFiles() + getOneOfFiles()
+        getPrimitivesFile() + getEnumsFile() + getObjectFiles() + getUnnamedObjectFiles()
 
     private fun getPrimitivesFile(): List<FileSpec> {
         val namedPrimitives = getNamedPrimitives()
@@ -68,35 +68,21 @@ class ModelFilesGenerator(
         }
     }
 
-    private fun getOneOfFiles(): List<FileSpec> = analyzer.objectTree.oneOfs.map { (parent, children) ->
-        val name = parent.name
-        prepareFileSpec(options.modelPackage, name.asTypeName()) {
-            val parentClass = ClassName(options.modelPackage, name.asTypeName())
-            val parentType = parent.schema.asSealedTypeSpec(parentClass) {
-            }
-
-            addType(parentType)
-            val types = children.map { (childName, childSpec) ->
-                val childClassName = ClassName(options.modelPackage, childSpec.name.asTypeName())
-                childSpec.schema.asTypeSpec(childClassName) {
-                    addAnnotation(poetAnnotation(PoetConstants.SEALED_TYPE_LABEL) {
-                        addMember("\"$childName\"")
-                    })
-                    superclass(parentClass)
-                }
-            }
-            types.forEach(::addType)
-        }
-    }
-
     private fun getObjectFiles(): List<FileSpec> = analyzer.objectTree.nodes.map { (schemaInfo, children) ->
         val name = schemaInfo.name
         val schema = schemaInfo.schema
 
         prepareFileSpec(options.modelPackage, name.asClassFileName()) {
             val className = ClassName(options.modelPackage, name.asTypeName())
-            val rootType = schema.asTypeSpec(className) {
-                addChildren(children)
+
+            val rootType = if (schemaInfo.schemaType == SchemaType.OneOf) {
+                schema.asSealedTypeSpec(className) {
+                    addChildren(className, children)
+                }
+            } else {
+                schema.asTypeSpec(className) {
+                    addChildren(className, children)
+                }
             }
 
             addType(rootType)
@@ -104,6 +90,7 @@ class ModelFilesGenerator(
     }
 
     private fun TypeSpec.Builder.addChildren(
+        parentCn: ClassName,
         items: MutableSet<ModelTreeNode>
     ) {
         items.forEach { (schemaInfo, children) ->
@@ -114,7 +101,17 @@ class ModelFilesGenerator(
 
             //only use Objects and Enums as child classes/enums (see OpenApiAnalyzer#buildModelTree)
             val type = when (val type = schemaInfo.schemaType) {
-                SchemaType.Object -> schema.asTypeSpec(className) { addChildren(children) }
+                SchemaType.Object -> schema.asTypeSpec(className) {
+                    val discriminator = schemaInfo.discriminator
+                    if (discriminator != null) {
+                        addAnnotation(poetAnnotation(PoetConstants.SEALED_TYPE_LABEL) {
+                            addMember("\"$discriminator\"")
+                        })
+                        superclass(parentCn)
+                    }
+
+                    addChildren(className, children)
+                }
                 SchemaType.Enum -> schema.asEnumSpec(className)
                 else -> throw IllegalStateException("Type $type not allowed in ModelTree")
             }

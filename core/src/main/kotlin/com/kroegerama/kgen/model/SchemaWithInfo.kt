@@ -7,7 +7,8 @@ data class SchemaWithInfo(
     val schema: Schema<*>,
     private val rawName: String,
     val schemaType: SchemaType,
-    val path: List<String>
+    val path: List<String>,
+    var discriminator: String? = null
 ) : Comparable<SchemaWithInfo> {
     val name get() = schema.title ?: rawName //title will always override the name
 
@@ -23,8 +24,8 @@ data class SchemaWithInfo(
     override fun compareTo(other: SchemaWithInfo) = name.compareTo(other.name)
 
     override fun toString(): String {
-        return "SchemaWithInfo(rawName='$rawName', schemaType=$schemaType, schema=#${System.identityHashCode(schema)})"
+        return "SchemaWithInfo(rawName='$rawName', schemaType=$schemaType, discriminator=$discriminator, schema=#${System.identityHashCode(schema)})"
     }
 
-    fun withName(newName: String) = SchemaWithInfo(schema, newName, schemaType, path)
+    fun withName(newName: String) = SchemaWithInfo(schema, newName, schemaType, path, discriminator)
 }
