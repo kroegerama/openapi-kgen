@@ -199,16 +199,17 @@ class OpenAPIAnalyzer(
     }
 
     fun findTypeNameFor(schema: Schema<*>): TypeName {
+        val treeName = objectTree.findName(schema)
+        if (treeName.isNotEmpty()) {
+            return ClassName(options.modelPackage, treeName)
+        }
+
         val knownName = findRawNameFor(schema)
         if (knownName != null) return ClassName(options.modelPackage, knownName.asTypeName())
 
         val enumName = enums.firstOrNull { it.schema === schema }?.name
         if (enumName != null) return ClassName(options.modelPackage, enumName.asTypeName())
 
-        val treeName = objectTree.findName(schema)
-        if (treeName.isNotEmpty()) {
-            return ClassName(options.modelPackage, treeName)
-        }
 
         return when (schema.getSchemaType()) {
             SchemaType.Primitive -> schema.mapToTypeName()

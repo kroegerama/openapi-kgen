@@ -76,6 +76,14 @@ fun OpenAPI.visit(
             visited.put(obj, marker) == null
         }, pathName, pathItem, tagFilter, visitor)
     }
+    components?.schemas.orEmpty().forEach { (schemaName, schema) ->
+        if (visited.put(schema, marker) == null) {
+            val forceCreate = schema.extensions.orEmpty()["x-kgen-force-create"] as? Boolean == true
+            if (forceCreate) {
+                visitor(listOf(schemaName), schema)
+            }
+        }
+    }
 }
 
 private fun OpenAPI.visitPathItem(

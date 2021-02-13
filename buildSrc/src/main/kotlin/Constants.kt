@@ -3,7 +3,7 @@ object C {
     const val PROJECT_NAME = "OpenAPI KGen"
     const val PROJECT_DESCRIPTION = "Generate modern API Clients in Kotlin from OpenAPI specifications. Supports OpenAPI >= 3.0.0."
 
-    const val PROJECT_VERSION = "0.11.0"
+    const val PROJECT_VERSION = "0.11.3"
     const val PROJECT_GROUP_ID = "com.kroegerama.openapi-kgen"
 
     const val PROJECT_URL = "https://github.com/kroegerama/openapi-kgen"
@@ -11,10 +11,9 @@ object C {
 }
 
 object V {
-    const val KOTLIN = "1.4.10"
-    const val BINTRAY = "1.8.5"
-    const val GRADLE_PUBLISH = "0.11.0"
-    const val ANDROID_GRADLE = "4.1.0"
+    const val KOTLIN = "1.4.30"
+    const val GRADLE_PUBLISH = "0.12.0"
+    const val ANDROID_GRADLE = "4.1.2"
     const val AIRLINE = "0.9"
     const val GUAVA = "29.0-jre"
     const val ICU = "67.1"

@@ -1,17 +1,15 @@
-import com.jfrog.bintray.gradle.BintrayExtension
-
 plugins {
     java
     kotlin("jvm") version V.KOTLIN
     id("signing")
     id("maven-publish")
-    id("com.jfrog.bintray") version V.BINTRAY apply false
+    id("io.codearte.nexus-staging")
 }
 
 allprojects {
     repositories {
         google()
-        jcenter()
+        mavenCentral()
     }
 
     apply {
@@ -42,11 +40,18 @@ allprojects {
     }
 }
 
+val nexusUsername: String? by project
+val nexusPassword: String? by project
+val signingKey: String? by project
+val signingPassword: String? by project
+val nexusStagingProfileId: String? by project
+
 subprojects {
     apply {
         plugin("maven-publish")
-        plugin("com.jfrog.bintray")
+        plugin("signing")
     }
+
     publishing {
         publications {
             create<MavenPublication>("maven") {
@@ -68,28 +73,29 @@ subprojects {
                 pom(BuildConfig.pomAction)
             }
         }
+        repositories {
+            maven {
+                name = "sonatype"
+                setUrl("https://oss.sonatype.org/service/local/staging/deploy/maven2/")
+
+                credentials {
+                    username = nexusUsername
+                    password = nexusPassword
+                }
+            }
+        }
     }
-
-    configure<BintrayExtension> {
-        val bintrayUser: String by project
-        val bintrayApiKey: String by project
-
-        user = bintrayUser
-        key = bintrayApiKey
-
-        setPublications("maven")
-
-        pkg(delegateClosureOf<BintrayExtension.PackageConfig> {
-            repo = "maven"
-            userOrg = user
-
-            name = "${rootProject.name}:${project.name}"
-            desc = project.description
-
-            setLicenses("Apache-2.0")
-            vcsUrl = "https://github.com/kroegerama/openapi-kgen"
-            setLabels("openapi", "generator", "codegen", "swagger")
-            publicDownloadNumbers = true
-        })
+    signing {
+        sign(publishing.publications)
+        if (signingKey != null && signingPassword != null) {
+            useInMemoryPgpKeys(signingKey, signingPassword)
+        }
     }
+}
+
+nexusStaging {
+    packageGroup = group.toString()
+    stagingProfileId = nexusStagingProfileId
+    username = nexusUsername
+    password = nexusPassword
 }
