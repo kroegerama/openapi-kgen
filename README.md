@@ -2,7 +2,7 @@
 
 ![Publish](https://github.com/kroegerama/openapi-kgen/workflows/Publish/badge.svg)
 
-![License](https://img.shields.io/github/license/kroegerama/android-kaiteki)
+![License](https://img.shields.io/github/license/kroegerama/openapi-kgen)
 
 | Artifact | Version |
 |:-|:-:|
