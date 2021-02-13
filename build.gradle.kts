@@ -10,9 +10,12 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        jcenter()
     }
 
     apply {
+        plugin("maven-publish")
+        plugin("signing")
         plugin("org.jetbrains.kotlin.jvm")
     }
 
