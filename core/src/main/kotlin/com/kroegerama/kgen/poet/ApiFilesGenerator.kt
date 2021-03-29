@@ -60,8 +60,9 @@ class ApiFilesGenerator(
         val request = operationInfo.getRequest()
         val response = operationInfo.getResponse()
 
-        val baseParameters = collectParameters(operationInfo)
-        val additionalParams = request?.let { getAdditionalParameters(it) }.orEmpty()
+        val baseParams = collectParameters(operationInfo)
+        val methodParams = request?.let { getAdditionalParameters(it) }.orEmpty()
+        val allParameters = baseParams + methodParams
 
         val ifaceFun = poetFunSpec("__$funName") {
             val methodAnnotation = createHttpMethodAnnotation(operationInfo.method, operationInfo.path)
@@ -90,17 +91,21 @@ class ApiFilesGenerator(
             }
 
             addModifiers(KModifier.SUSPEND, KModifier.ABSTRACT)
-            addParameters(baseParameters.map { it.ifaceParam })
-            addParameters(additionalParams.map { it.ifaceParam })
+            addParameters(allParameters.map { it.ifaceParam }.sortedBy { ifaceParam ->
+                //@Path must be defined before all other params
+                ifaceParam.annotations.any { it.typeName != PoetConstants.RETROFIT_PARAM_PATH }
+            }.sortedBy { ifaceParam ->
+                //@Body must be the last param
+                ifaceParam.annotations.any { it.typeName == PoetConstants.RETROFIT_BODY }
+            })
             addReturns(response, false)
         }
 
         val delegateFun = poetFunSpec(funName) {
             addModifiers(KModifier.SUSPEND)
-            addParameters(baseParameters.map { it.delegateParam })
-            addParameters(additionalParams.map { it.delegateParam })
+            addParameters(allParameters.map { it.delegateParam })
 
-            val paramList = parameters.joinToString(", ") { it.name }
+            val paramList = parameters.joinToString(",\n    ", prefix = "\n", postfix = "\n") { it.name + " = " + it.name }
             addStatement("return %T.getApi<%T>().%L(%L)", cnHolder, apiClassName, "__$funName", paramList)
 
             addReturns(response, true)
@@ -115,7 +120,7 @@ class ApiFilesGenerator(
             createParameterSpecPair(parameter)
         }
 
-    private fun createParameterSpecPair(parameter: Parameter): ParameterSpecPair {
+    private fun createParameterSpecPair(parameter: Parameter): ParameterSpecPairInfo {
         val rawName = parameter.name
         val name = rawName.asFieldName()
         val schema = parameter.schema
@@ -141,10 +146,10 @@ class ApiFilesGenerator(
                 defaultValue("null")
             }
         }
-        return ParameterSpecPair(ifaceParam, delegateParam)
+        return ParameterSpecPairInfo(ifaceParam, delegateParam)
     }
 
-    private fun getAdditionalParameters(request: SchemaWithMime): List<ParameterSpecPair> {
+    private fun getAdditionalParameters(request: SchemaWithMime): List<ParameterSpecPairInfo> {
         val (mime, required, schema) = request
         return when (mime.mapMimeToRequestType()) {
             OperationRequestType.Default -> {
@@ -156,7 +161,7 @@ class ApiFilesGenerator(
                     if (!required) defaultValue("null")
                     addAnnotation(PoetConstants.RETROFIT_BODY)
                 }
-                listOf(ParameterSpecPair(ifaceBodyParam, delegateBodyParam))
+                listOf(ParameterSpecPairInfo(ifaceBodyParam, delegateBodyParam))
             }
             OperationRequestType.Multipart -> {
                 schema.convertToParameters(required, true)

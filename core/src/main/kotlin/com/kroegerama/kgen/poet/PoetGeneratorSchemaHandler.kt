@@ -19,7 +19,7 @@ interface IPoetGeneratorSchemaHandler {
     fun Schema<*>.asEnumSpec(className: ClassName): TypeSpec
     fun Schema<*>.asTypeSpec(className: ClassName, block: TypeSpec.Builder.() -> Unit): TypeSpec
     fun Schema<*>.asSealedTypeSpec(className: ClassName, block: TypeSpec.Builder.() -> Unit): TypeSpec
-    fun Schema<*>.convertToParameters(required: Boolean, isMultipart: Boolean): List<ParameterSpecPair>
+    fun Schema<*>.convertToParameters(required: Boolean, isMultipart: Boolean): List<ParameterSpecPairInfo>
 }
 
 class PoetGeneratorSchemaHandler(
@@ -130,7 +130,7 @@ class PoetGeneratorSchemaHandler(
         addAnnotation(createJsonClassAnnotation())
     }
 
-    override fun Schema<*>.convertToParameters(required: Boolean, isMultipart: Boolean): List<ParameterSpecPair> {
+    override fun Schema<*>.convertToParameters(required: Boolean, isMultipart: Boolean): List<ParameterSpecPairInfo> {
         val type = getSchemaType()
         if (type != SchemaType.Object) throw IllegalStateException("Multipart and URL encoded are only supported with Object as Content Type")
 
@@ -152,7 +152,7 @@ class PoetGeneratorSchemaHandler(
                 if (!required || propertyNullable) defaultValue("null")
                 propertySchema.description?.let { addKdoc("%L", it) }
             }
-            ParameterSpecPair(ifaceParam, delegateParam)
+            ParameterSpecPairInfo(ifaceParam, delegateParam)
         }
     }
 
