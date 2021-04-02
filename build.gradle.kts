@@ -3,7 +3,7 @@ plugins {
     kotlin("jvm") version V.KOTLIN
     id("signing")
     id("maven-publish")
-    id("io.codearte.nexus-staging")
+    id("io.github.gradle-nexus.publish-plugin") version "1.0.0"
 }
 
 allprojects {
@@ -95,9 +95,13 @@ subprojects {
     }
 }
 
-nexusStaging {
-    packageGroup = group.toString()
-    stagingProfileId = nexusStagingProfileId
-    username = nexusUsername
-    password = nexusPassword
+nexusPublishing {
+    packageGroup.set(group.toString())
+    repositories {
+        sonatype {
+            stagingProfileId.set(nexusStagingProfileId)
+            username.set(nexusUsername)
+            password.set(nexusPassword)
+        }
+    }
 }
