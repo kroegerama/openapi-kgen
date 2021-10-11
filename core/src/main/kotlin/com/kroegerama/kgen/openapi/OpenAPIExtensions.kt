@@ -73,6 +73,9 @@ fun Schema<*>.getSchemaType() = when {
     this is ArraySchema -> SchemaType.Array
     this is MapSchema -> SchemaType.Map
     this is ObjectSchema -> SchemaType.Object
+
+    `$ref` != null -> SchemaType.Ref
+
     this is ComposedSchema -> when {
         allOf != null -> SchemaType.AllOf
         oneOf != null -> SchemaType.OneOf
@@ -80,7 +83,6 @@ fun Schema<*>.getSchemaType() = when {
         else -> SchemaType.Object
     }
 
-    `$ref` != null -> SchemaType.Ref
     else -> SchemaType.Object
 }
 
@@ -128,5 +130,6 @@ fun SecurityScheme.mapToType(): SecurityType = when (type) {
         SecurityScheme.In.QUERY -> SecurityType.Query
         else -> SecurityType.Unknown
     }
+    SecurityScheme.Type.OAUTH2 -> SecurityType.OAuth
     else -> SecurityType.Unknown
 }

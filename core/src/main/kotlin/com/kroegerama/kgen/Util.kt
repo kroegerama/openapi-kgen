@@ -35,7 +35,7 @@ fun Info.asFileHeader() = buildString {
     appendLine(Constants.FILE_HEADER_NOTE)
     appendLine()
     appendLine(title)
-    description?.let { appendLine(it) }
+    description?.let { d -> d.split("\n").forEach { appendLine(it) } }
     appendLine("Version $version")
     contact?.run {
         appendLine()
@@ -53,4 +53,12 @@ fun Info.asFileHeader() = buildString {
     appendLine()
     appendLine("Generated ${Util.formattedDateTime}")
     appendLine(Util.generatorInfo)
+}
+
+fun String.asMultilineComment() = trim().split("\n").joinToString(
+    separator = "\n * ",
+    prefix = "/* \n * ",
+    postfix = "\n */"
+) {
+    it.replace("*/","*\u200B/")
 }

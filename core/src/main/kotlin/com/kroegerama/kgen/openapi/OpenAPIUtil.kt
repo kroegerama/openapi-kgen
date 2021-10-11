@@ -52,6 +52,7 @@ enum class SecurityType {
     Bearer,
     Header,
     Query,
+    OAuth,
     Unknown
 }
 

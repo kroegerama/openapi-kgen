@@ -437,6 +437,10 @@ class BaseFilesGenerator(
                     addParameter("apiKey", STRING)
                     addStatement("%N[%S] = %T.query(%S, apiKey)", mnAuthMap, name, cnAuthInfo, scheme.name)
                 }
+                SecurityType.OAuth-> {
+                    addParameter("oauth", STRING)
+                    addStatement("%N[%S] = %T.header(%S, oauth)", mnAuthMap, name, cnAuthInfo, "Authorization")
+                }
                 SecurityType.Unknown -> {
                     throw IllegalStateException("SecurityScheme not supported: $scheme")
                 }

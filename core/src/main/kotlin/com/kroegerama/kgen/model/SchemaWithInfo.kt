@@ -10,7 +10,7 @@ data class SchemaWithInfo(
     val path: List<String>,
     var discriminator: String? = null
 ) : Comparable<SchemaWithInfo> {
-    val name get() = schema.title ?: rawName //title will always override the name
+    val name get() = rawName
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
