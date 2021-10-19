@@ -94,8 +94,6 @@ class PoetGeneratorSchemaHandler(
     }
 
     override fun Schema<*>.asTypeSpec(className: ClassName, block: TypeSpec.Builder.() -> Unit) = poetClass(className) {
-        addModifiers(KModifier.DATA)
-
         description?.let { addKdoc("%L\n", it) }
 
         val allProperties = mutableMapOf<String, Schema<*>>()
@@ -128,6 +126,10 @@ class PoetGeneratorSchemaHandler(
         primaryConstructor(*propSpecs.toTypedArray())
         apply(block)
         addAnnotation(createJsonClassAnnotation())
+
+        if (propSpecs.isNotEmpty()) {
+            addModifiers(KModifier.DATA)
+        }
     }
 
     override fun Schema<*>.convertToParameters(required: Boolean, isMultipart: Boolean): List<ParameterSpecPairInfo> {

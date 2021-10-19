@@ -3,7 +3,7 @@ plugins {
     kotlin("jvm") version V.KOTLIN
     id("signing")
     id("maven-publish")
-    id("io.github.gradle-nexus.publish-plugin") version "1.0.0"
+    id("io.github.gradle-nexus.publish-plugin") version "1.1.0"
 }
 
 allprojects {
