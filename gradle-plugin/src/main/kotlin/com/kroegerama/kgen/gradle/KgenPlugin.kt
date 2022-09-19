@@ -1,5 +1,6 @@
 package com.kroegerama.kgen.gradle
 
+import com.android.build.gradle.BaseExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.ExtensionContainer
@@ -20,9 +21,7 @@ class KgenPlugin : Plugin<Project> {
 
         val kgenExtension = extensions.create<KgenExtension>("kgen")
 
-        afterEvaluate {
-            finishEvaluate(kgenExtension)
-        }
+        finishEvaluate(kgenExtension)
     }
 
     private fun Project.finishEvaluate(kgenExtension: KgenExtension) {
@@ -37,13 +36,17 @@ class KgenPlugin : Plugin<Project> {
     }
 
     private fun Project.updateExtensions(outputFolder: File) {
-        configure<SourceSetContainer> {
-            maybeCreate(SourceSet.MAIN_SOURCE_SET_NAME).java.srcDir(outputFolder)
-        }
         apply(plugin = "idea")
         configure<IdeaModel> {
             module.sourceDirs.add(outputFolder)
             module.generatedSourceDirs.add(outputFolder)
+        }
+        extensions.findByNameTyped<BaseExtension>("android")?.run {
+            sourceSets.maybeCreate(SourceSet.MAIN_SOURCE_SET_NAME).java.srcDir(outputFolder)
+            return
+        }
+        extensions.findByType<SourceSetContainer>()?.run {
+            maybeCreate(SourceSet.MAIN_SOURCE_SET_NAME).java.srcDir(outputFolder)
         }
     }
 
