@@ -18,7 +18,7 @@ jobs:
       - name: Release build
         run: ./gradlew assemble
       - name: Publish cli to MavenCentral
-        run: ./gradlew cli:publishToSonatype --max-workers 1 cli:closeAndReleaseSonatypeStagingRepository
+        run: ./gradlew cli:publishToSonatype --max-workers 1 closeAndReleaseSonatypeStagingRepository
         env:
           ORG_GRADLE_PROJECT_nexusUsername: ${{ secrets.NEXUS_USERNAME }}
           ORG_GRADLE_PROJECT_nexusPassword: ${{ secrets.NEXUS_PASSWORD }}
@@ -26,7 +26,7 @@ jobs:
           ORG_GRADLE_PROJECT_signingKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.SIGNING_PASSWORD }}
       - name: Publish core to MavenCentral
-        run: ./gradlew core:publishToSonatype --max-workers 1 core:closeAndReleaseSonatypeStagingRepository
+        run: ./gradlew core:publishToSonatype --max-workers 1 closeAndReleaseSonatypeStagingRepository
         env:
           ORG_GRADLE_PROJECT_nexusUsername: ${{ secrets.NEXUS_USERNAME }}
           ORG_GRADLE_PROJECT_nexusPassword: ${{ secrets.NEXUS_PASSWORD }}

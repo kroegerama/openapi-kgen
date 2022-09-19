@@ -23,6 +23,7 @@ gradlePlugin {
         create("kgenPlugin") {
             id = "com.kroegerama.openapi-kgen.gradle-plugin"
             implementationClass = "com.kroegerama.kgen.gradle.KgenPlugin"
+            displayName = C.PROJECT_NAME
         }
     }
 }
