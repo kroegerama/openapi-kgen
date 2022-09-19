@@ -22,9 +22,9 @@ allprojects {
         implementation(kotlin("stdlib-jdk8"))
     }
 
-    configure<JavaPluginConvention> {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+    configure<JavaPluginExtension> {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
 
     version = C.PROJECT_VERSION
@@ -34,10 +34,10 @@ allprojects {
 
     tasks {
         compileKotlin {
-            kotlinOptions.jvmTarget = "1.8"
+            kotlinOptions.jvmTarget = "11"
         }
         compileTestKotlin {
-            kotlinOptions.jvmTarget = "1.8"
+            kotlinOptions.jvmTarget = "11"
         }
     }
 }

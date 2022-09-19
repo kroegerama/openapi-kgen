@@ -1,15 +1,13 @@
 package com.kroegerama.kgen.gradle
 
-import com.android.build.gradle.BaseExtension
-import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.ExtensionContainer
-import org.gradle.api.plugins.JavaPluginConvention
+import org.gradle.api.tasks.SourceSet
+import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.*
 import org.gradle.plugins.ide.idea.model.IdeaModel
-import org.jetbrains.kotlin.gradle.dsl.KotlinProjectExtension
 import org.jetbrains.kotlin.gradle.internal.KaptTask
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.io.File
@@ -19,29 +17,11 @@ class KgenPlugin : Plugin<Project> {
     override fun apply(project: Project): Unit = project.run {
         pluginManager.apply("kotlin-kapt")
         addDependencies()
-        setJava8()
 
         val kgenExtension = extensions.create<KgenExtension>("kgen")
 
         afterEvaluate {
             finishEvaluate(kgenExtension)
-        }
-    }
-
-    private fun Project.setJava8() {
-        convention.findPlugin<JavaPluginConvention>()?.run {
-            sourceCompatibility = JavaVersion.VERSION_1_8
-            targetCompatibility = JavaVersion.VERSION_1_8
-        }
-
-        // Android project or library
-        // Cannot use findByType, because non-android projects will throw an error
-        // findByType<BaseExtension>()...
-        extensions.findByNameTyped<BaseExtension>("android")?.run {
-            compileOptions {
-                sourceCompatibility = JavaVersion.VERSION_1_8
-                targetCompatibility = JavaVersion.VERSION_1_8
-            }
         }
     }
 
@@ -57,21 +37,13 @@ class KgenPlugin : Plugin<Project> {
     }
 
     private fun Project.updateExtensions(outputFolder: File) {
-        extensions.findByType<KotlinProjectExtension>()?.run {
-            sourceSets.maybeCreate("main").kotlin.srcDir(outputFolder)
+        configure<SourceSetContainer> {
+            maybeCreate(SourceSet.MAIN_SOURCE_SET_NAME).java.srcDir(outputFolder)
         }
-
-        extensions.findByType<IdeaModel>()?.run {
-            module {
-                generatedSourceDirs.add(outputFolder)
-            }
-        }
-
-        // Android project or library
-        // Cannot use findByType, because non-android projects will throw an error
-        // findByType<BaseExtension>()...
-        extensions.findByNameTyped<BaseExtension>("android")?.run {
-            sourceSets.maybeCreate("main").java.srcDir(outputFolder)
+        apply(plugin = "idea")
+        configure<IdeaModel> {
+            module.sourceDirs.add(outputFolder)
+            module.generatedSourceDirs.add(outputFolder)
         }
     }
 
@@ -86,12 +58,12 @@ class KgenPlugin : Plugin<Project> {
     }
 
     private fun Project.addDependencies() = dependencies {
-        val moshi = "1.11.0"
+        val moshi = "1.14.0"
         add("implementation", "com.squareup.moshi:moshi:$moshi")
         add("implementation", "com.squareup.moshi:moshi-adapters:$moshi")
         add("kapt", "com.squareup.moshi:moshi-kotlin-codegen:$moshi")
 
-        val okhttp = "4.9.0"
+        val okhttp = "4.10.0"
         add("implementation", "com.squareup.okhttp3:okhttp:$okhttp")
 
         val retrofit = "2.9.0"
@@ -99,7 +71,7 @@ class KgenPlugin : Plugin<Project> {
         add("implementation", "com.squareup.retrofit2:converter-moshi:$retrofit")
         add("implementation", "com.squareup.retrofit2:converter-scalars:$retrofit")
 
-        val moshiSealed = "0.4.0"
+        val moshiSealed = "0.18.3"
         add("implementation", "dev.zacsweers.moshix:moshi-sealed-runtime:$moshiSealed")
         add("kapt", "dev.zacsweers.moshix:moshi-sealed-codegen:$moshiSealed")
     }
