@@ -49,6 +49,7 @@ val signingPassword: String? by project
 val nexusStagingProfileId: String? by project
 
 subprojects {
+    if (name == "gradle-plugin") return@subprojects
     apply {
         plugin("maven-publish")
         plugin("signing")
