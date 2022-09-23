@@ -21,7 +21,9 @@ class KgenPlugin : Plugin<Project> {
 
         val kgenExtension = extensions.create<KgenExtension>("kgen")
 
-        finishEvaluate(kgenExtension)
+        afterEvaluate {
+            finishEvaluate(kgenExtension)
+        }
     }
 
     private fun Project.finishEvaluate(kgenExtension: KgenExtension) {
