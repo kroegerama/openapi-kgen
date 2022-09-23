@@ -21,13 +21,11 @@ class KgenPlugin : Plugin<Project> {
 
         val kgenExtension = extensions.create<KgenExtension>("kgen")
 
-        afterEvaluate {
-            finishEvaluate(kgenExtension)
-        }
+        finishEvaluate(kgenExtension)
     }
 
     private fun Project.finishEvaluate(kgenExtension: KgenExtension) {
-        val outputFolder = buildDir.resolve("generated/source/kgen")
+        val outputFolder = buildDir.resolve("generated/source/kgen").also { it.mkdirs() }
 
         val kgenTask = tasks.register<KgenTask>("generateKgen") {
             setProperties(kgenExtension, outputFolder)
