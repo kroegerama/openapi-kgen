@@ -56,6 +56,9 @@ subprojects {
 
     publishing {
         publications {
+            if (name == "gradle-plugin") {
+                return@publications
+            }
             create<MavenPublication>("maven") {
                 val binaryJar = components["java"]
 
