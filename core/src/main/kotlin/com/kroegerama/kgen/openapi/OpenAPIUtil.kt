@@ -5,7 +5,7 @@ import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.media.Schema
 import io.swagger.v3.parser.core.models.ParseOptions
 
-fun parseSpecFile(specFile: String): OpenAPI {
+fun parseSpecFile(specFile: String, allowParseErrors: Boolean): OpenAPI {
     val parseOpts = ParseOptions().apply {
         isResolve = true
         isFlatten = true
@@ -14,7 +14,15 @@ fun parseSpecFile(specFile: String): OpenAPI {
         isResolveCombinators = true
     }
 
-    return OpenAPIParser().readLocation(specFile, emptyList(), parseOpts).openAPI
+    val result = OpenAPIParser().readLocation(specFile, emptyList(), parseOpts)
+    if (!allowParseErrors && (!result.messages.isNullOrEmpty() || result.openAPI == null)) {
+        throw IllegalStateException(
+            "Parsing error: ${
+                result.messages.orEmpty().joinToString("\n", prefix = "[\n", postfix = "\n]")
+            }"
+        )
+    }
+    return result.openAPI
 }
 
 fun Schema<*>.getRefTypeName(): String? = `$ref`?.substringAfterLast('/')

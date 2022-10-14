@@ -43,6 +43,10 @@ open class KgenTask : DefaultTask() {
     @OutputDirectory
     val output = project.objects.property<File>()
 
+    @Input
+    @Optional
+    val allowParseErrors = project.objects.property<Boolean>()
+
     fun setProperties(extension: KgenExtension, outputFolder: File) {
         specFile.set(extension.specFile)
         specUri.set(extension.specUri)
@@ -91,7 +95,7 @@ open class KgenTask : DefaultTask() {
             outputDirIsSrcDir = true
         )
 
-        val openAPI = parseSpecFile(options.specFile)
+        val openAPI = parseSpecFile(options.specFile, allowParseErrors.getOrElse(false))
 
         val analyzer = OpenAPIAnalyzer(openAPI, options)
         val poetGenerator = PoetGenerator(openAPI, options, analyzer)

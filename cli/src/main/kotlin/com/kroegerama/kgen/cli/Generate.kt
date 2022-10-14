@@ -59,6 +59,13 @@ class Generate : Runnable {
     )
     private val useInlineClass = false
 
+    @Option(
+        name = ["--allow-parse-errors"],
+        title = "Allow parse errors",
+        description = "Try to generate classes, even if parsing errors occur in the spec."
+    )
+    private val allowParseErrors = false
+
     override fun run() {
         val options = OptionSet(
             specFile = specFile,
@@ -80,7 +87,7 @@ class Generate : Runnable {
         }
 
         if (options.verbose) println("Parsing spec file...")
-        val openAPI = parseSpecFile(options.specFile)
+        val openAPI = parseSpecFile(options.specFile, allowParseErrors)
 
         if (options.verbose) println("Generating...")
         val analyzer = OpenAPIAnalyzer(openAPI, options)
