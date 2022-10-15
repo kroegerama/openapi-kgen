@@ -11,7 +11,7 @@ object C {
 }
 
 object V {
-    const val KOTLIN = "1.6.21"
+    const val KOTLIN = "1.7.20"
     const val GRADLE_PUBLISH = "1.0.0"
     const val ANDROID_GRADLE = "7.2.2"
     const val AIRLINE = "0.9"
