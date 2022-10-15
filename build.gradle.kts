@@ -56,25 +56,26 @@ subprojects {
 
     publishing {
         publications {
-            if (name == "gradle-plugin") {
-                return@publications
-            }
-            create<MavenPublication>("maven") {
-                val binaryJar = components["java"]
+            val isPlugin = name == "gradle-plugin"
+            create<MavenPublication>(if (isPlugin) "pluginMaven" else "mavenJava") {
+                //plugin already adds artifacts by itself
+                if (!isPlugin) {
+                    val binaryJar = components["java"]
 
-                val sourcesJar by tasks.creating(Jar::class) {
-                    archiveClassifier.set("sources")
-                    from(sourceSets["main"].allSource)
+                    val sourcesJar by tasks.creating(Jar::class) {
+                        archiveClassifier.set("sources")
+                        from(sourceSets["main"].allSource)
+                    }
+
+                    val javadocJar: Jar by tasks.creating(Jar::class) {
+                        archiveClassifier.set("javadoc")
+                        from("$buildDir/javadoc")
+                    }
+
+                    from(binaryJar)
+                    artifact(sourcesJar)
+                    artifact(javadocJar)
                 }
-
-                val javadocJar: Jar by tasks.creating(Jar::class) {
-                    archiveClassifier.set("javadoc")
-                    from("$buildDir/javadoc")
-                }
-
-                from(binaryJar)
-                artifact(sourcesJar)
-                artifact(javadocJar)
                 pom(BuildConfig.pomAction)
             }
         }
