@@ -102,6 +102,9 @@ class ApiFilesGenerator(
         }
 
         val delegateFun = poetFunSpec(funName) {
+            operationInfo.operation.description?.let {
+                addKdoc("%L", it)
+            }
             addModifiers(KModifier.SUSPEND)
             addParameters(allParameters.map { it.delegateParam })
 
@@ -163,12 +166,15 @@ class ApiFilesGenerator(
                 }
                 listOf(ParameterSpecPairInfo(ifaceBodyParam, delegateBodyParam))
             }
+
             OperationRequestType.Multipart -> {
                 schema.convertToParameters(required, true)
             }
+
             OperationRequestType.UrlEncoded -> {
                 schema.convertToParameters(required, false)
             }
+
             OperationRequestType.Unknown -> {
                 //TODO!!
                 emptyList()
