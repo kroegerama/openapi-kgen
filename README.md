@@ -8,7 +8,6 @@
 |:-|:-:|
 | openapi-kgen:core | [![Maven Central](https://img.shields.io/maven-central/v/com.kroegerama.openapi-kgen/core)](https://search.maven.org/artifact/com.kroegerama.openapi-kgen/core) |
 | openapi-kgen:cli |  [![Maven Central](https://img.shields.io/maven-central/v/com.kroegerama.openapi-kgen/cli)](https://search.maven.org/artifact/com.kroegerama.openapi-kgen/cli) |
-| openapi-kgen:gradle-plugin |  [![Maven Central](https://img.shields.io/maven-central/v/com.kroegerama.openapi-kgen/gradle-plugin)](https://search.maven.org/artifact/com.kroegerama.openapi-kgen/gradle-plugin) |
 
 ### Description
 
