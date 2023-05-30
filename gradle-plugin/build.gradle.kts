@@ -8,7 +8,7 @@ dependencies {
     implementation(project(":core"))
 
     implementation(gradleApi())
-    compileOnly(Dep.ANDROID_GRADLE)
+//    compileOnly(Dep.ANDROID_GRADLE)
     implementation(Dep.KOTLIN_GRADLE)
 }
 

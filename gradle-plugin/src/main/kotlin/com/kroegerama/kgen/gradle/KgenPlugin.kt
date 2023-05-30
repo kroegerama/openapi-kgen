@@ -1,14 +1,17 @@
 package com.kroegerama.kgen.gradle
 
-import com.android.build.gradle.BaseExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.ExtensionContainer
-import org.gradle.api.tasks.SourceSet
-import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.TaskProvider
-import org.gradle.kotlin.dsl.*
+import org.gradle.kotlin.dsl.apply
+import org.gradle.kotlin.dsl.configure
+import org.gradle.kotlin.dsl.create
+import org.gradle.kotlin.dsl.dependencies
+import org.gradle.kotlin.dsl.register
+import org.gradle.kotlin.dsl.withType
 import org.gradle.plugins.ide.idea.model.IdeaModel
+import org.jetbrains.kotlin.gradle.dsl.kotlinExtension
 import org.jetbrains.kotlin.gradle.internal.KaptTask
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.io.File
@@ -25,7 +28,7 @@ class KgenPlugin : Plugin<Project> {
     }
 
     private fun Project.finishEvaluate(kgenExtension: KgenExtension) {
-        val outputFolder = buildDir.resolve("generated/source/kgen").also { it.mkdirs() }
+        val outputFolder = buildDir.resolve("generated/kgen/main/kotlin").also { it.mkdirs() }
 
         val kgenTask = tasks.register<KgenTask>("generateKgen") {
             setProperties(kgenExtension, outputFolder)
@@ -38,15 +41,12 @@ class KgenPlugin : Plugin<Project> {
     private fun Project.updateExtensions(outputFolder: File) {
         apply(plugin = "idea")
         configure<IdeaModel> {
-            module.sourceDirs.add(outputFolder)
-            module.generatedSourceDirs.add(outputFolder)
+            module {
+                generatedSourceDirs = generatedSourceDirs + outputFolder
+            }
         }
-        extensions.findByNameTyped<BaseExtension>("android")?.run {
-            sourceSets.maybeCreate(SourceSet.MAIN_SOURCE_SET_NAME).java.srcDir(outputFolder)
-            return
-        }
-        extensions.findByType<SourceSetContainer>()?.run {
-            maybeCreate(SourceSet.MAIN_SOURCE_SET_NAME).java.srcDir(outputFolder)
+        kotlinExtension.sourceSets.maybeCreate("main").kotlin {
+            srcDir(outputFolder)
         }
     }
 
@@ -74,7 +74,7 @@ class KgenPlugin : Plugin<Project> {
         add("implementation", "com.squareup.retrofit2:converter-moshi:$retrofit")
         add("implementation", "com.squareup.retrofit2:converter-scalars:$retrofit")
 
-        val moshiSealed = "0.18.3"
+        val moshiSealed = "0.22.1"
         add("implementation", "dev.zacsweers.moshix:moshi-sealed-runtime:$moshiSealed")
         add("kapt", "dev.zacsweers.moshix:moshi-sealed-codegen:$moshiSealed")
     }

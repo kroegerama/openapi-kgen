@@ -1,5 +1,6 @@
 package com.kroegerama.kgen.model
 
+import com.kroegerama.kgen.language.asTypeName
 import com.kroegerama.kgen.openapi.SchemaType
 import io.swagger.v3.oas.models.media.Schema
 
@@ -10,7 +11,8 @@ data class SchemaWithInfo(
     val path: List<String>,
     var discriminator: String? = null
 ) : Comparable<SchemaWithInfo> {
-    val name get() = rawName
+
+    val name = rawName.asTypeName()
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

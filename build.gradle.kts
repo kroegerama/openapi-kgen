@@ -1,3 +1,5 @@
+import java.time.Duration
+
 plugins {
     java
     kotlin("jvm") version V.KOTLIN
@@ -110,5 +112,12 @@ nexusPublishing {
             nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
             snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
         }
+    }
+
+    connectTimeout.set(Duration.ofMinutes(15))
+    clientTimeout.set(Duration.ofMinutes(15))
+    transitionCheckOptions {
+        maxRetries.set(60)
+        delayBetween.set(Duration.ofSeconds(60))
     }
 }

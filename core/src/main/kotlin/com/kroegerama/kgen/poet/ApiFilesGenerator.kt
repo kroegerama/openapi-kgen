@@ -64,58 +64,16 @@ class ApiFilesGenerator(
         val methodParams = request?.let { getAdditionalParameters(it) }.orEmpty()
         val allParameters = baseParams + methodParams
 
-        val ifaceFun = poetFunSpec("__$funName") {
-            val methodAnnotation = createHttpMethodAnnotation(operationInfo.method, operationInfo.path)
-            addAnnotation(methodAnnotation)
+        val ifaceFun = generateIfaceFun(funName, operationInfo, request, allParameters, response, false)
+        val ifaceFunSync = generateIfaceFun(funName, operationInfo, request, allParameters, response, true)
 
-            if (operationInfo.securityNames.isNotEmpty()) {
-                val cnInterceptor = ClassName(options.packageName, "ApiAuthInterceptor")
-                val mnAuthHeader = MemberName(cnInterceptor, Constants.AUTH_HEADER_NAME)
-
-                val secHeader = poetAnnotation(PoetConstants.RETROFIT_HEADERS) {
-                    operationInfo.securityNames.forEach { name ->
-                        //val secStr = "${Constants.AUTH_HEADER_VALUE}: ${scheme.name}"
-                        val block = buildCodeBlock {
-                            add("\${%M}: %L", mnAuthHeader, name)
-                        }
-
-                        addMember("\"%L\"", block)
-                    }
-                }
-                addAnnotation(secHeader)
-            }
-
-            when (request?.mime) {
-                Constants.MIME_TYPE_MULTIPART_FORM_DATA -> addAnnotation(PoetConstants.RETROFIT_MULTIPART)
-                Constants.MIME_TYPE_URL_ENCODED -> addAnnotation(PoetConstants.RETROFIT_FORM_ENCODED)
-            }
-
-            addModifiers(KModifier.SUSPEND, KModifier.ABSTRACT)
-            addParameters(allParameters.map { it.ifaceParam }.sortedBy { ifaceParam ->
-                //@Path must be defined before all other params
-                ifaceParam.annotations.any { it.typeName != PoetConstants.RETROFIT_PARAM_PATH }
-            }.sortedBy { ifaceParam ->
-                //@Body must be the last param
-                ifaceParam.annotations.any { it.typeName == PoetConstants.RETROFIT_BODY }
-            })
-            addReturns(response, false)
-        }
-
-        val delegateFun = poetFunSpec(funName) {
-            operationInfo.operation.description?.let {
-                addKdoc("%L", it)
-            }
-            addModifiers(KModifier.SUSPEND)
-            addParameters(allParameters.map { it.delegateParam })
-
-            val paramList = parameters.joinToString(",\n    ", prefix = "\n", postfix = "\n") { it.name + " = " + it.name }
-            addStatement("return %T.getApi<%T>().%L(%L)", cnHolder, apiClassName, "__$funName", paramList)
-
-            addReturns(response, true)
-        }
+        val delegateFun = generateDelegateFun(funName, operationInfo, allParameters, response, cnHolder, apiClassName, false)
+        val delegateFunSync = generateDelegateFun(funName, operationInfo, allParameters, response, cnHolder, apiClassName, true)
 
         apiInterface.addFunction(ifaceFun)
+        apiInterface.addFunction(ifaceFunSync)
         companion.addFunction(delegateFun)
+        companion.addFunction(delegateFunSync)
     }
 
     private fun collectParameters(operationInfo: OperationWithInfo) =
@@ -182,23 +140,104 @@ class ApiFilesGenerator(
         }
     }
 
-    private fun FunSpec.Builder.addReturns(responseInfo: ResponseInfo?, withDescription: Boolean) {
+    private fun generateIfaceFun(
+        funName: String,
+        operationInfo: OperationWithInfo,
+        request: SchemaWithMime?,
+        allParameters: List<ParameterSpecPairInfo>,
+        response: ResponseInfo?,
+        sync: Boolean
+    ) = poetFunSpec(funName.run {
+        val suffix = if (sync) "Call" else ""
+        "__$funName$suffix"
+    }) {
+        val methodAnnotation = createHttpMethodAnnotation(operationInfo.method, operationInfo.path)
+        addAnnotation(methodAnnotation)
+
+        if (operationInfo.securityNames.isNotEmpty()) {
+            val cnInterceptor = ClassName(options.packageName, "ApiAuthInterceptor")
+            val mnAuthHeader = MemberName(cnInterceptor, Constants.AUTH_HEADER_NAME)
+
+            val secHeader = poetAnnotation(PoetConstants.RETROFIT_HEADERS) {
+                operationInfo.securityNames.forEach { name ->
+                    //val secStr = "${Constants.AUTH_HEADER_VALUE}: ${scheme.name}"
+                    val block = buildCodeBlock {
+                        add("\${%M}: %L", mnAuthHeader, name)
+                    }
+
+                    addMember("\"%L\"", block)
+                }
+            }
+            addAnnotation(secHeader)
+        }
+
+        when (request?.mime) {
+            Constants.MIME_TYPE_MULTIPART_FORM_DATA -> addAnnotation(PoetConstants.RETROFIT_MULTIPART)
+            Constants.MIME_TYPE_URL_ENCODED -> addAnnotation(PoetConstants.RETROFIT_FORM_ENCODED)
+        }
+
+        if (!sync) {
+            addModifiers(KModifier.SUSPEND)
+        }
+        addModifiers(KModifier.ABSTRACT)
+        addParameters(allParameters.map { it.ifaceParam }.sortedBy { ifaceParam ->
+            //@Path must be defined before all other params
+            ifaceParam.annotations.any { it.typeName != PoetConstants.RETROFIT_PARAM_PATH }
+        }.sortedBy { ifaceParam ->
+            //@Body must be the last param
+            ifaceParam.annotations.any { it.typeName == PoetConstants.RETROFIT_BODY }
+        })
+        addReturns(response, false, sync)
+    }
+
+    private fun generateDelegateFun(
+        funName: String,
+        operationInfo: OperationWithInfo,
+        allParameters: List<ParameterSpecPairInfo>,
+        response: ResponseInfo?,
+        cnHolder: ClassName,
+        apiClassName: ClassName,
+        sync: Boolean
+    ) = poetFunSpec(funName.run {
+        val suffix = if (sync) "Call" else ""
+        "$funName$suffix"
+    }) {
+        operationInfo.operation.description?.let {
+            addKdoc("%L", it)
+        }
+        if (!sync) {
+            addModifiers(KModifier.SUSPEND)
+        }
+        addParameters(allParameters.map { it.delegateParam })
+
+        val paramList = parameters.joinToString(",\n    ", prefix = "\n", postfix = "\n") { it.name + " = " + it.name }
+        val funNameSuffix = if (sync) "Call" else ""
+        addStatement("return %T.getApi<%T>().%L(%L)", cnHolder, apiClassName, "__$funName$funNameSuffix", paramList)
+
+        addReturns(response, true, sync)
+    }
+
+    private fun FunSpec.Builder.addReturns(responseInfo: ResponseInfo?, withDescription: Boolean, sync: Boolean) {
         responseInfo?.let { (_, description, schemaWithMime) ->
             val descriptionBlock = if (withDescription)
                 CodeBlock.Builder().apply {
                     description?.let { add("%L", it) }
                 }.build() else CodeBlock.builder().build()
 
+            val responseBase = if (sync) PoetConstants.RETROFIT_CALL else PoetConstants.RETROFIT_RESPONSE
             schemaWithMime?.let { (mime, _, schema) ->
                 val typeName = analyzer.findTypeNameFor(schema)
-                val responseType = PoetConstants.RETROFIT_RESPONSE.parameterizedBy(typeName)
+                val responseType = responseBase.parameterizedBy(typeName)
 
                 if (mime == Constants.MIME_TYPE_JSON) {
                     returns(responseType, descriptionBlock)
                 } else {
-                    returns(PoetConstants.OK_RESPONSE_BODY, descriptionBlock)
+                    returns(
+                        if (sync) PoetConstants.RETROFIT_CALL.parameterizedBy(PoetConstants.OK_RESPONSE_BODY) else PoetConstants.OK_RESPONSE_BODY,
+                        descriptionBlock
+                    )
                 }
-            } ?: returns(PoetConstants.RETROFIT_RESPONSE.parameterizedBy(UNIT), descriptionBlock)
+            } ?: returns(responseBase.parameterizedBy(UNIT), descriptionBlock)
         }
     }
 }

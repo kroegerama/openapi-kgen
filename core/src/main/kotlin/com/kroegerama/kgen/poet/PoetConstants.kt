@@ -45,6 +45,8 @@ object PoetConstants {
 
     val RETROFIT_CREATE_FUN = MemberName(PKG_RETROFIT, "create")
 
+    val RETROFIT_CALL = ClassName(PKG_RETROFIT, "Call")
+
     val CONVERTER = ClassName(PKG_RETROFIT, "Converter")
     val CONVERTER_FACTORY = ClassName(PKG_RETROFIT, "Converter", "Factory")
 
