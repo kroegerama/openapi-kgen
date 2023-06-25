@@ -19,10 +19,14 @@ import java.io.File
 class KgenPlugin : Plugin<Project> {
 
     override fun apply(project: Project): Unit = project.run {
-        pluginManager.apply("kotlin-kapt")
-        addDependencies()
-
         val kgenExtension = extensions.create<KgenExtension>("kgen")
+
+        //moshix sealed plugin needs kapt
+        pluginManager.apply("kotlin-kapt")
+
+        if (kgenExtension.useKsp) {
+            pluginManager.apply("com.google.devtools.ksp")
+        }
 
         finishEvaluate(kgenExtension)
     }
@@ -34,6 +38,7 @@ class KgenPlugin : Plugin<Project> {
             setProperties(kgenExtension, outputFolder)
         }
 
+        addDependencies(kgenExtension)
         updateExtensions(outputFolder)
         updateTasks(kgenTask)
     }
@@ -60,11 +65,13 @@ class KgenPlugin : Plugin<Project> {
         }
     }
 
-    private fun Project.addDependencies() = dependencies {
+    private fun Project.addDependencies(kgenExtension: KgenExtension) = dependencies {
+        val processor = if (kgenExtension.useKsp) "ksp" else "kapt"
+
         val moshi = "1.14.0"
         add("implementation", "com.squareup.moshi:moshi:$moshi")
         add("implementation", "com.squareup.moshi:moshi-adapters:$moshi")
-        add("kapt", "com.squareup.moshi:moshi-kotlin-codegen:$moshi")
+        add(processor, "com.squareup.moshi:moshi-kotlin-codegen:$moshi")
 
         val okhttp = "4.10.0"
         add("implementation", "com.squareup.okhttp3:okhttp:$okhttp")

@@ -8,9 +8,10 @@ open class KgenExtension {
     var packageName: String? = null
     var limitApis = emptySet<String>()
     var useInlineClasses = false
+    var useKsp = true
 
     override fun toString(): String {
-        return "KgenExtension(specFile=$specFile, specUri=$specUri, packageName='$packageName', limitApis=$limitApis, useInlineClasses=$useInlineClasses)"
+        return "KgenExtension(specFile=$specFile, specUri=$specUri, packageName='$packageName', limitApis=$limitApis, useInlineClasses=$useInlineClasses, useKsp=$useKsp)"
     }
 
 }
