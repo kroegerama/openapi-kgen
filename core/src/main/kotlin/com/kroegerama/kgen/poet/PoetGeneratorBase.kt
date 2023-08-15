@@ -33,7 +33,7 @@ class PoetGeneratorBase(
 ) : IPoetGeneratorBase {
 
     private fun FileSpec.Builder.addHeader(): FileSpec.Builder {
-        addComment("%L", openAPI.info.asFileHeader())
+        addFileComment("%L", openAPI.info.asFileHeader())
         return this
     }
 

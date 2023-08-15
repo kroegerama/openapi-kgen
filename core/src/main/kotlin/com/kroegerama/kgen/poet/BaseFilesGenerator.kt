@@ -195,6 +195,7 @@ class BaseFilesGenerator(
                 addStatement("%N?.apply { decorate() }", mnDecorator)
                 addStatement("build()")
                 endControlFlow()
+                returns(PoetConstants.MOSHI)
             }
 
             val fCreateClient = poetFunSpec(fnCreateClient.simpleName) {
@@ -204,6 +205,7 @@ class BaseFilesGenerator(
                 addStatement("%N?.apply { decorate() }", mnDecorator)
                 addStatement("build()")
                 endControlFlow()
+                returns(PoetConstants.OK_CLIENT)
             }
 
             val fCreateRetrofit = poetFunSpec(fnCreateRetrofit.simpleName) {
@@ -217,6 +219,7 @@ class BaseFilesGenerator(
                 addStatement("%N?.apply { decorate() }", mnDecorator)
                 addStatement("build()")
                 endControlFlow()
+                returns(PoetConstants.RETROFIT)
             }
 
             val fGetApi = poetFunSpec(fnGetApi.simpleName) {
@@ -375,6 +378,7 @@ class BaseFilesGenerator(
                 "Authorization",
                 PoetConstants.OK_CREDENTIALS
             )
+            returns(cnAuthInfo)
         }
 
         val fBearer = poetFunSpec("bearer") {
@@ -386,6 +390,7 @@ class BaseFilesGenerator(
                 "Authorization",
                 "Bearer \$token"
             )
+            returns(cnAuthInfo)
         }
 
         val fHeader = poetFunSpec("header") {
@@ -396,6 +401,7 @@ class BaseFilesGenerator(
                 cnAuthInfo,
                 mnAuthPositionHeader
             )
+            returns(cnAuthInfo)
         }
 
         val fQuery = poetFunSpec("query") {
@@ -406,6 +412,7 @@ class BaseFilesGenerator(
                 cnAuthInfo,
                 mnAuthPositionQuery
             )
+            returns(cnAuthInfo)
         }
 
         addFunction(fBasic)
@@ -425,22 +432,27 @@ class BaseFilesGenerator(
                     addParameter("password", STRING)
                     addStatement("%N[%S] = %T.basic(username, password)", mnAuthMap, name, cnAuthInfo)
                 }
+
                 SecurityType.Bearer -> {
                     addParameter("token", STRING)
                     addStatement("%N[%S] = %T.bearer(token)", mnAuthMap, name, cnAuthInfo)
                 }
+
                 SecurityType.Header -> {
                     addParameter("apiKey", STRING)
                     addStatement("%N[%S] = %T.header(%S, apiKey)", mnAuthMap, name, cnAuthInfo, scheme.name)
                 }
+
                 SecurityType.Query -> {
                     addParameter("apiKey", STRING)
                     addStatement("%N[%S] = %T.query(%S, apiKey)", mnAuthMap, name, cnAuthInfo, scheme.name)
                 }
-                SecurityType.OAuth-> {
+
+                SecurityType.OAuth -> {
                     addParameter("oauth", STRING)
                     addStatement("%N[%S] = %T.header(%S, oauth)", mnAuthMap, name, cnAuthInfo, "Authorization")
                 }
+
                 SecurityType.Unknown -> {
                     throw IllegalStateException("SecurityScheme not supported: $scheme")
                 }
@@ -470,6 +482,7 @@ class BaseFilesGenerator(
                 addParameter("annotations", ARRAY.parameterizedBy(ANNOTATION))
                 addParameter("retrofit", PoetConstants.RETROFIT)
                 addStatement("return if (type is %T && type.isEnum) %N() else null", cStar, fnCreateEnumConverter)
+                returns(PoetConstants.CONVERTER.parameterizedBy(ENUM.parameterizedBy(STAR), STRING).nullable(true))
             }
             val createEnumConverterFun = poetFunSpec(fnCreateEnumConverter.simpleName) {
                 addModifiers(KModifier.PRIVATE)

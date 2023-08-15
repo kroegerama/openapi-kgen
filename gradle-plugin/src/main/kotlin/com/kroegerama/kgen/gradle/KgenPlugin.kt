@@ -68,12 +68,12 @@ class KgenPlugin : Plugin<Project> {
     private fun Project.addDependencies(kgenExtension: KgenExtension) = dependencies {
         val processor = if (kgenExtension.useKsp) "ksp" else "kapt"
 
-        val moshi = "1.14.0"
+        val moshi = "1.15.0"
         add("implementation", "com.squareup.moshi:moshi:$moshi")
         add("implementation", "com.squareup.moshi:moshi-adapters:$moshi")
         add(processor, "com.squareup.moshi:moshi-kotlin-codegen:$moshi")
 
-        val okhttp = "4.10.0"
+        val okhttp = "4.11.0"
         add("implementation", "com.squareup.okhttp3:okhttp:$okhttp")
 
         val retrofit = "2.9.0"
@@ -81,9 +81,9 @@ class KgenPlugin : Plugin<Project> {
         add("implementation", "com.squareup.retrofit2:converter-moshi:$retrofit")
         add("implementation", "com.squareup.retrofit2:converter-scalars:$retrofit")
 
-        val moshiSealed = "0.22.1"
+        val moshiSealed = "0.24.0"
         add("implementation", "dev.zacsweers.moshix:moshi-sealed-runtime:$moshiSealed")
-        add("kapt", "dev.zacsweers.moshix:moshi-sealed-codegen:$moshiSealed")
+        add(processor, "dev.zacsweers.moshix:moshi-sealed-codegen:$moshiSealed")
     }
 
     private inline fun <reified T> ExtensionContainer.findByNameTyped(name: String): T? = findByName(name) as? T

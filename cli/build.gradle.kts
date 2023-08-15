@@ -1,7 +1,7 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 plugins {
-    id("com.github.johnrengelman.shadow") version "5.2.0"
+    id("com.github.johnrengelman.shadow") version "7.1.2"
 }
 
 dependencies {
@@ -14,7 +14,7 @@ dependencies {
 tasks {
     named<ShadowJar>("shadowJar") {
         archiveBaseName.set("openapi-kgen-cli")
-        archiveClassifier.set("")
+        archiveClassifier.set("shadow")
 
         mergeServiceFiles()
         manifest {
