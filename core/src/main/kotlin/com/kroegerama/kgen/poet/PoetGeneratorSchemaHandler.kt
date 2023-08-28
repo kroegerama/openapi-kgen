@@ -74,12 +74,40 @@ class PoetGeneratorSchemaHandler(
     }
 
     override fun Schema<*>.asEnumSpec(className: ClassName) = poetEnum(className) {
-        enum.orEmpty().forEach { value ->
-            val valueName = value.toString().asConstantName()
+        val extensions = this@asEnumSpec.extensions
+        description?.let { addKdoc(it) }
+
+        // Swagger enum name extension.
+        var enumNames = extensions?.getOrDefault("x-enumNames", null) as? ArrayList<String>
+        
+        // https://openapi-generator.tech/docs/templating/#enum
+        enumNames = enumNames ?: extensions?.getOrDefault("x-enum-varnames", null) as? ArrayList<String>
+
+        // https://openapi-generator.tech/docs/templating/#enum
+        var enumDescriptions = extensions?.getOrDefault("x-enum-descriptions", null) as? ArrayList<String?>
+        if (enumDescriptions?.size != enum?.size) enumDescriptions = null;
+
+        // https://redocly.com/docs/api-reference-docs/specification-extensions/x-enum-descriptions
+        if (enumDescriptions == null && enumNames != null && enumNames.size == enum?.size) {
+            val descMap = extensions?.getOrDefault("x-enumDescriptions", null) as? LinkedHashMap<String, String> ?: LinkedHashMap()
+
+            enumDescriptions = ArrayList<String?>().apply {
+                addAll(enumNames!!.map { descMap.getOrDefault(it, null) })
+            }
+        }
+
+        if (enumNames == null || enumNames.size != enum?.size) {
+            enumNames = ArrayList<String>().apply {
+                addAll(enum.orEmpty().map { it.toString().asConstantName() })
+            }
+        }
+
+        enum.orEmpty().forEachIndexed { idx, value ->
+            val valueName = enumNames[idx];
 
             addEnumConstant(valueName, poetAnonymousClass {
                 addAnnotation(createJsonAnnotation(value.toString()))
-                description?.let { addKdoc(it) }
+                enumDescriptions?.get(idx)?.let { addKdoc(it) }
             })
         }
     }
