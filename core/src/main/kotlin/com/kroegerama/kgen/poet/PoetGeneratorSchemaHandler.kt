@@ -76,8 +76,8 @@ class PoetGeneratorSchemaHandler(
     override fun Schema<*>.asEnumSpec(className: ClassName) = poetEnum(className) {
         val extensions = this@asEnumSpec.extensions
 
-        var enumNames = extensions.getOrDefault("x-enumNames", null) as? ArrayList<String>
-        enumNames = enumNames ?: extensions.getOrDefault("x-enum-varnames", null) as? ArrayList<String>
+        var enumNames = extensions?.getOrDefault("x-enumNames", null) as? ArrayList<String>
+        enumNames = enumNames ?: extensions?.getOrDefault("x-enum-varnames", null) as? ArrayList<String>
 
         if (enumNames == null || enumNames.count() != enum?.count()) {
             enumNames = ArrayList<String>().apply {
