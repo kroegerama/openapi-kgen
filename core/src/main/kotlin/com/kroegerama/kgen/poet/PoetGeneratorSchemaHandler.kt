@@ -73,7 +73,7 @@ class PoetGeneratorSchemaHandler(
         }
     }
 
-override fun Schema<*>.asEnumSpec(className: ClassName) = poetEnum(className) {
+    override fun Schema<*>.asEnumSpec(className: ClassName) = poetEnum(className) {
         val extensions = this@asEnumSpec.extensions
         description?.let { addKdoc(it) }
 
