@@ -79,9 +79,25 @@ class PoetGeneratorSchemaHandler(
         var enumNames = extensions?.getOrDefault("x-enumNames", null) as? ArrayList<String>
         enumNames = enumNames ?: extensions?.getOrDefault("x-enum-varnames", null) as? ArrayList<String>
 
-        if (enumNames == null || enumNames.count() != enum?.count()) {
+        var enumDescriptions = extensions?.getOrDefault("x-enum-descriptions", null) as? ArrayList<String>
+        if (enumDescriptions == null && enumNames != null && enumNames.size == enum?.size) {
+            val descMap = extensions?.getOrDefault("x-enumDescriptions", null) as? LinkedHashMap<String, String> ?: LinkedHashMap()
+            enumDescriptions = ArrayList<String>().apply {
+                addAll(enumNames!!.map { descMap.getOrDefault(it, description) })
+            }
+        }
+
+        if (enumNames == null || enumNames.size != enum?.size) {
             enumNames = ArrayList<String>().apply {
                 addAll(enum.orEmpty().map { it.toString().asConstantName() })
+            }
+        }
+
+        if (enumDescriptions?.size != enum?.size && description != null) {
+            enumDescriptions = ArrayList<String>().apply {
+                for (i in 0 until enum.orEmpty().size) {
+                    add(description)
+                }
             }
         }
 
@@ -90,7 +106,7 @@ class PoetGeneratorSchemaHandler(
 
             addEnumConstant(valueName, poetAnonymousClass {
                 addAnnotation(createJsonAnnotation(value.toString()))
-                description?.let { addKdoc(it) }
+                enumDescriptions?.get(idx)?.let { addKdoc(it) }
             })
         }
     }
