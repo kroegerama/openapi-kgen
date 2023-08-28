@@ -77,14 +77,17 @@ class PoetGeneratorSchemaHandler(
         val extensions = this@asEnumSpec.extensions
         description?.let { addKdoc(it) }
 
+        // Swagger enum name extension.
         var enumNames = extensions?.getOrDefault("x-enumNames", null) as? ArrayList<String>
+        
+        // https://openapi-generator.tech/docs/templating/#enum
         enumNames = enumNames ?: extensions?.getOrDefault("x-enum-varnames", null) as? ArrayList<String>
 
+        // https://openapi-generator.tech/docs/templating/#enum
         var enumDescriptions = extensions?.getOrDefault("x-enum-descriptions", null) as? ArrayList<String?>
-        if (enumDescriptions?.size != enum?.size) {
-            enumDescriptions = null;
-        }
+        if (enumDescriptions?.size != enum?.size) enumDescriptions = null;
 
+        // https://redocly.com/docs/api-reference-docs/specification-extensions/x-enum-descriptions
         if (enumDescriptions == null && enumNames != null && enumNames.size == enum?.size) {
             val descMap = extensions?.getOrDefault("x-enumDescriptions", null) as? LinkedHashMap<String, String> ?: LinkedHashMap()
 
