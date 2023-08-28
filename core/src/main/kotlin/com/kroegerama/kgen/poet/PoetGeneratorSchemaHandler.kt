@@ -74,8 +74,19 @@ class PoetGeneratorSchemaHandler(
     }
 
     override fun Schema<*>.asEnumSpec(className: ClassName) = poetEnum(className) {
-        enum.orEmpty().forEach { value ->
-            val valueName = value.toString().asConstantName()
+        val extensions = this@asEnumSpec.extensions
+
+        var enumNames = extensions.getOrDefault("x-enumNames", null) as? ArrayList<String>
+        enumNames = enumNames ?: extensions.getOrDefault("x-enum-varnames", null) as? ArrayList<String>
+
+        if (enumNames == null || enumNames.count() != enum?.count()) {
+            enumNames = ArrayList<String>().apply {
+                addAll(enum.orEmpty().map { it.toString().asConstantName() })
+            }
+        }
+
+        enum.orEmpty().forEachIndexed { idx, value ->
+            val valueName = enumNames[idx];
 
             addEnumConstant(valueName, poetAnonymousClass {
                 addAnnotation(createJsonAnnotation(value.toString()))
