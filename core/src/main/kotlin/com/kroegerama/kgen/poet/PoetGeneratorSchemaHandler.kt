@@ -74,40 +74,48 @@ class PoetGeneratorSchemaHandler(
     }
 
     override fun Schema<*>.asEnumSpec(className: ClassName) = poetEnum(className) {
-        val extensions = this@asEnumSpec.extensions
         description?.let { addKdoc(it) }
 
+        val enumItems = enum.orEmpty()
+        val extensions = extensions.orEmpty()
+
         // Swagger enum name extension.
-        var enumNames = extensions?.getOrDefault("x-enumNames", null) as? ArrayList<String>
-        
-        // https://openapi-generator.tech/docs/templating/#enum
-        enumNames = enumNames ?: extensions?.getOrDefault("x-enum-varnames", null) as? ArrayList<String>
+        val enumNames = (extensions.getOrDefault("x-enumNames", null) as? List<*>)?.takeIf {
+            (it.size == enumItems.size).also { valid ->
+                if (!valid) {
+                    println("[warn] invalid size of enum extensions: ${it.size} != ${enumItems.size} - ignoring extension")
+                }
+            }
+        }?.map { it.toString().asConstantName() }
 
         // https://openapi-generator.tech/docs/templating/#enum
-        var enumDescriptions = extensions?.getOrDefault("x-enum-descriptions", null) as? ArrayList<String?>
-        if (enumDescriptions?.size != enum?.size) enumDescriptions = null;
+        val enumVarNames = (enumNames ?: extensions.getOrDefault("x-enum-varnames", null) as? List<*>)?.takeIf {
+            (it.size == enumItems.size).also { valid ->
+                if (!valid) {
+                    println("[warn] invalid size of enum extensions: ${it.size} != ${enumItems.size} - ignoring extension")
+                }
+            }
+        }?.map { it.toString().asConstantName() }
+
+        // https://openapi-generator.tech/docs/templating/#enum
+        val enumDescriptions = (extensions.getOrDefault("x-enum-descriptions", null) as? List<*>)?.takeIf {
+            (it.size == enumItems.size).also { valid ->
+                if (!valid) {
+                    println("[warn] invalid size of enum extensions: ${it.size} != ${enumItems.size} - ignoring extension")
+                }
+            }
+        }
 
         // https://redocly.com/docs/api-reference-docs/specification-extensions/x-enum-descriptions
-        if (enumDescriptions == null && enumNames != null && enumNames.size == enum?.size) {
-            val descMap = extensions?.getOrDefault("x-enumDescriptions", null) as? LinkedHashMap<String, String> ?: LinkedHashMap()
+        val enumDescriptionsMap = extensions.getOrDefault("x-enumDescriptions", null) as? Map<*, *>
 
-            enumDescriptions = ArrayList<String?>().apply {
-                addAll(enumNames!!.map { descMap.getOrDefault(it, null) })
-            }
-        }
-
-        if (enumNames == null || enumNames.size != enum?.size) {
-            enumNames = ArrayList<String>().apply {
-                addAll(enum.orEmpty().map { it.toString().asConstantName() })
-            }
-        }
-
-        enum.orEmpty().forEachIndexed { idx, value ->
-            val valueName = enumNames[idx];
+        enumItems.forEachIndexed { idx, value ->
+            val valueName = enumNames?.get(idx) ?: enumVarNames?.get(idx) ?: value.toString().asConstantName()
+            val valueDescription = enumDescriptions?.get(idx)?.toString() ?: enumDescriptionsMap?.get(value.toString())?.toString()
 
             addEnumConstant(valueName, poetAnonymousClass {
                 addAnnotation(createJsonAnnotation(value.toString()))
-                enumDescriptions?.get(idx)?.let { addKdoc(it) }
+                valueDescription?.let { addKdoc(it) }
             })
         }
     }
