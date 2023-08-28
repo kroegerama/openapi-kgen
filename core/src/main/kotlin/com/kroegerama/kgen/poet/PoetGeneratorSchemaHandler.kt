@@ -81,6 +81,10 @@ class PoetGeneratorSchemaHandler(
         enumNames = enumNames ?: extensions?.getOrDefault("x-enum-varnames", null) as? ArrayList<String>
 
         var enumDescriptions = extensions?.getOrDefault("x-enum-descriptions", null) as? ArrayList<String?>
+        if (enumDescriptions?.size != enum?.size) {
+            enumDescriptions = null;
+        }
+
         if (enumDescriptions == null && enumNames != null && enumNames.size == enum?.size) {
             val descMap = extensions?.getOrDefault("x-enumDescriptions", null) as? LinkedHashMap<String, String> ?: LinkedHashMap()
 
