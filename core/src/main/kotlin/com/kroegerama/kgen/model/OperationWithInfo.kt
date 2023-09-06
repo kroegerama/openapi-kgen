@@ -11,6 +11,9 @@ data class OperationWithInfo(
     val tags: List<String>,
     val securityNames: List<String>
 ) {
+
+    val deprecated = operation.deprecated ?: false
+
     fun createOperationName() =
         operation.operationId ?: "${method.name.toLowerCase()}${path.capitalize()}"
 

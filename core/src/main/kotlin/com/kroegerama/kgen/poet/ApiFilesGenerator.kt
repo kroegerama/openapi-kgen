@@ -64,11 +64,43 @@ class ApiFilesGenerator(
         val methodParams = request?.let { getAdditionalParameters(it) }.orEmpty()
         val allParameters = baseParams + methodParams
 
-        val ifaceFun = generateIfaceFun(funName, operationInfo, request, allParameters, response, false)
-        val ifaceFunSync = generateIfaceFun(funName, operationInfo, request, allParameters, response, true)
+        val ifaceFun = generateIfaceFun(
+            funName = funName,
+            operationInfo = operationInfo,
+            request = request,
+            allParameters = allParameters,
+            response = response,
+            sync = false
+        )
+        val ifaceFunSync = generateIfaceFun(
+            funName = funName,
+            operationInfo = operationInfo,
+            request = request,
+            allParameters = allParameters,
+            response = response,
+            sync = true
+        )
 
-        val delegateFun = generateDelegateFun(funName, operationInfo, allParameters, response, cnHolder, apiClassName, false)
-        val delegateFunSync = generateDelegateFun(funName, operationInfo, allParameters, response, cnHolder, apiClassName, true)
+        val delegateFun = generateDelegateFun(
+            funName = funName,
+            operationInfo = operationInfo,
+            allParameters = allParameters,
+            response = response,
+            cnHolder = cnHolder,
+            apiClassName = apiClassName,
+            sync = false,
+            deprecated = operationInfo.deprecated
+        )
+        val delegateFunSync = generateDelegateFun(
+            funName = funName,
+            operationInfo = operationInfo,
+            allParameters = allParameters,
+            response = response,
+            cnHolder = cnHolder,
+            apiClassName = apiClassName,
+            sync = true,
+            deprecated = operationInfo.deprecated
+        )
 
         apiInterface.addFunction(ifaceFun)
         apiInterface.addFunction(ifaceFunSync)
@@ -197,7 +229,8 @@ class ApiFilesGenerator(
         response: ResponseInfo?,
         cnHolder: ClassName,
         apiClassName: ClassName,
-        sync: Boolean
+        sync: Boolean,
+        deprecated: Boolean
     ) = poetFunSpec(funName.run {
         val suffix = if (sync) "Call" else ""
         "$funName$suffix"
@@ -207,6 +240,11 @@ class ApiFilesGenerator(
         }
         if (!sync) {
             addModifiers(KModifier.SUSPEND)
+        }
+        if (deprecated) {
+            addAnnotation(poetAnnotation(Deprecated::class.asClassName()) {
+                addMember("message = %S", "Deprecated via OpenApi.")
+            })
         }
         addParameters(allParameters.map { it.delegateParam })
 
