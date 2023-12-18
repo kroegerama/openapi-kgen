@@ -8,8 +8,26 @@ import com.kroegerama.kgen.language.asFunctionName
 import com.kroegerama.kgen.openapi.OpenAPIAnalyzer
 import com.kroegerama.kgen.openapi.SecurityType
 import com.kroegerama.kgen.openapi.mapToType
-import com.squareup.kotlinpoet.*
+import com.squareup.kotlinpoet.ANNOTATION
+import com.squareup.kotlinpoet.ANY
+import com.squareup.kotlinpoet.ARRAY
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.ENUM
+import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.LIST
+import com.squareup.kotlinpoet.LONG
+import com.squareup.kotlinpoet.MUTABLE_MAP
+import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import com.squareup.kotlinpoet.STAR
+import com.squareup.kotlinpoet.STRING
+import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.TypeVariableName
+import com.squareup.kotlinpoet.UNIT
+import com.squareup.kotlinpoet.asClassName
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.security.SecurityScheme
 import java.lang.reflect.Type
@@ -29,7 +47,9 @@ class BaseFilesGenerator(
         getMetadataFile(),
         getApiHolderFile(),
         getAuthInterceptorFile(),
-        getEnumConverterFile()
+        getEnumConverterFile(),
+        getDateConverterFactoryFile(),
+        getDateJsonAdapters()
     )
 
     private fun getMetadataFile() = prepareFileSpec(options.packageName, "Metadata") {
@@ -192,6 +212,8 @@ class BaseFilesGenerator(
                 addModifiers(KModifier.PRIVATE)
                 beginControlFlow("return %T().run", PoetConstants.MOSHI_BUILDER)
                 addStatement("add(%T::class.java, %T())", PoetConstants.DATE, PoetConstants.RFCDateAdapter)
+                addStatement("add(%T::class.java, %T)", PoetConstants.LOCAL_DATE, ClassName(options.packageName, "LocalDateJsonAdapter"))
+                addStatement("add(%T::class.java, %T)", PoetConstants.OFFSET_DATE_TIME, ClassName(options.packageName, "OffsetDateTimeJsonAdapter"))
                 addStatement("%N?.apply { decorate() }", mnDecorator)
                 addStatement("build()")
                 endControlFlow()
@@ -216,6 +238,7 @@ class BaseFilesGenerator(
                 addStatement("addConverterFactory(%T.create())", ClassName("retrofit2.converter.scalars", "ScalarsConverterFactory"))
                 addStatement("addConverterFactory(%T.create(%N))", ClassName("retrofit2.converter.moshi", "MoshiConverterFactory"), mnMoshi)
                 addStatement("addConverterFactory(%T)", ClassName(options.packageName, "EnumConverterFactory"))
+                addStatement("addConverterFactory(%T)", ClassName(options.packageName, "DateConverterFactory"))
                 addStatement("%N?.apply { decorate() }", mnDecorator)
                 addStatement("build()")
                 endControlFlow()
@@ -506,6 +529,126 @@ class BaseFilesGenerator(
             addFunction(createEnumConverterFun)
         }
         addType(enumConverterFactory)
+    }
+
+    private fun getDateConverterFactoryFile() = prepareFileSpec(options.packageName, "DateConverterFactory") {
+        val name = ClassName(options.packageName, "DateConverterFactory")
+        val fnStringConverter = MemberName(name, "stringConverter")
+        val fnCreateLocalDateConverter = MemberName(name, "createLocalDateConverter")
+        val fnCreateOffsetDateTimeConverter = MemberName(name, "createOffsetDateTimeConverter")
+
+        val factory = poetObject(name) {
+            superclass(PoetConstants.CONVERTER_FACTORY)
+
+            val stringConverterFun = poetFunSpec(fnStringConverter.simpleName) {
+                addModifiers(KModifier.OVERRIDE)
+                addParameter("type", Type::class)
+                addParameter("annotations", ARRAY.parameterizedBy(ANNOTATION))
+                addParameter("retrofit", PoetConstants.RETROFIT)
+                returns(PoetConstants.CONVERTER.parameterizedBy(STAR, STRING).nullable(true))
+                addStatement(
+                    """
+                    return when (type) {
+                        %T::class.java -> createLocalDateConverter()
+                        %T::class.java -> createOffsetDateTimeConverter()
+                        else -> null
+                    }""".trimIndent(),
+                    PoetConstants.LOCAL_DATE,
+                    PoetConstants.OFFSET_DATE_TIME,
+                )
+            }
+            val localDateConverterFun = poetFunSpec(fnCreateLocalDateConverter.simpleName) {
+                addModifiers(KModifier.PRIVATE)
+                returns(PoetConstants.CONVERTER.parameterizedBy(PoetConstants.LOCAL_DATE, STRING))
+                addStatement("return %T(%T::toString)", PoetConstants.CONVERTER, PoetConstants.LOCAL_DATE)
+            }
+            val offsetDateTimeConverterFun = poetFunSpec(fnCreateOffsetDateTimeConverter.simpleName) {
+                addModifiers(KModifier.PRIVATE)
+                returns(PoetConstants.CONVERTER.parameterizedBy(PoetConstants.OFFSET_DATE_TIME, STRING))
+                addStatement("return %T(%T::toString)", PoetConstants.CONVERTER, PoetConstants.OFFSET_DATE_TIME)
+            }
+
+            addFunction(stringConverterFun)
+            addFunction(localDateConverterFun)
+            addFunction(offsetDateTimeConverterFun)
+        }
+        addType(factory)
+    }
+
+    private fun getDateJsonAdapters() = prepareFileSpec(options.packageName, "DateJsonAdapters") {
+        val localDateConverter = poetObject(ClassName(options.packageName, "LocalDateJsonAdapter")) {
+            superclass(PoetConstants.MOSHI_JSON_ADAPTER.parameterizedBy(PoetConstants.LOCAL_DATE))
+
+            val fromJson = poetFunSpec("fromJson") {
+                addModifiers(KModifier.OVERRIDE)
+                addParameter("reader", PoetConstants.JSON_READER)
+                returns(PoetConstants.LOCAL_DATE.nullable(true))
+                addStatement(
+                    """
+                    return if (reader.peek() == %T.Token.NULL) {
+                        reader.nextNull()
+                    } else {
+                        %T.parse(reader.nextString())
+                    }""".trimIndent(),
+                    PoetConstants.JSON_READER,
+                    PoetConstants.LOCAL_DATE
+                )
+            }
+            val toJson = poetFunSpec("toJson") {
+                addModifiers(KModifier.OVERRIDE)
+                addParameter("writer", PoetConstants.JSON_WRITER)
+                addParameter("value", PoetConstants.LOCAL_DATE.nullable(true))
+                addStatement(
+                    """
+                    if (value == null) {
+                        writer.nullValue()
+                    } else {
+                        writer.value(value.toString())
+                    }""".trimIndent()
+                )
+            }
+
+            addFunction(fromJson)
+            addFunction(toJson)
+        }
+        val offsetDateTimeConverter = poetObject(ClassName(options.packageName, "OffsetDateTimeJsonAdapter")) {
+            superclass(PoetConstants.MOSHI_JSON_ADAPTER.parameterizedBy(PoetConstants.OFFSET_DATE_TIME))
+
+            val fromJson = poetFunSpec("fromJson") {
+                addModifiers(KModifier.OVERRIDE)
+                addParameter("reader", PoetConstants.JSON_READER)
+                returns(PoetConstants.OFFSET_DATE_TIME.nullable(true))
+                addStatement(
+                    """
+                    return if (reader.peek() == %T.Token.NULL) {
+                        reader.nextNull()
+                    } else {
+                        %T.parse(reader.nextString())
+                    }""".trimIndent(),
+                    PoetConstants.JSON_READER,
+                    PoetConstants.OFFSET_DATE_TIME
+                )
+            }
+            val toJson = poetFunSpec("toJson") {
+                addModifiers(KModifier.OVERRIDE)
+                addParameter("writer", PoetConstants.JSON_WRITER)
+                addParameter("value", PoetConstants.OFFSET_DATE_TIME.nullable(true))
+                addStatement(
+                    """
+                    if (value == null) {
+                        writer.nullValue()
+                    } else {
+                        writer.value(value.toString())
+                    }""".trimIndent()
+                )
+            }
+
+            addFunction(fromJson)
+            addFunction(toJson)
+        }
+
+        addType(localDateConverter)
+        addType(offsetDateTimeConverter)
     }
 
 }

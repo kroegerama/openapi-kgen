@@ -3,6 +3,8 @@ package com.kroegerama.kgen.poet
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.asClassName
+import java.time.LocalDate
+import java.time.OffsetDateTime
 import java.util.*
 
 object PoetConstants {
@@ -16,6 +18,10 @@ object PoetConstants {
     val MOSHI_JSON_CLASS = ClassName(PKG_MOSHI, "JsonClass")
     val MOSHI = ClassName(PKG_MOSHI, "Moshi")
     val MOSHI_BUILDER = ClassName(PKG_MOSHI, "Moshi", "Builder")
+    val MOSHI_JSON_ADAPTER = ClassName(PKG_MOSHI, "JsonAdapter")
+
+    val JSON_READER = ClassName(PKG_MOSHI, "JsonReader")
+    val JSON_WRITER = ClassName(PKG_MOSHI, "JsonWriter")
 
     val RETROFIT_GET = ClassName(PKG_RETROFIT_HTTP, "GET")
     val RETROFIT_POST = ClassName(PKG_RETROFIT_HTTP, "POST")
@@ -67,6 +73,9 @@ object PoetConstants {
     val EXCEPTION = ClassName("kotlin", "Exception")
 
     val DATE = Date::class.asClassName()
+    val OFFSET_DATE_TIME = OffsetDateTime::class.asClassName()
+    val LOCAL_DATE = LocalDate::class.asClassName()
+
     val RFCDateAdapter = ClassName("com.squareup.moshi.adapters", "Rfc3339DateJsonAdapter")
 
     val SEALED_TYPE_LABEL = ClassName("dev.zacsweers.moshix.sealed.annotations", "TypeLabel")
