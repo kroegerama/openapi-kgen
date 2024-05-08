@@ -8,26 +8,8 @@ import com.kroegerama.kgen.language.asFunctionName
 import com.kroegerama.kgen.openapi.OpenAPIAnalyzer
 import com.kroegerama.kgen.openapi.SecurityType
 import com.kroegerama.kgen.openapi.mapToType
-import com.squareup.kotlinpoet.ANNOTATION
-import com.squareup.kotlinpoet.ANY
-import com.squareup.kotlinpoet.ARRAY
-import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.CodeBlock
-import com.squareup.kotlinpoet.ENUM
-import com.squareup.kotlinpoet.FileSpec
-import com.squareup.kotlinpoet.FunSpec
-import com.squareup.kotlinpoet.KModifier
-import com.squareup.kotlinpoet.LIST
-import com.squareup.kotlinpoet.LONG
-import com.squareup.kotlinpoet.MUTABLE_MAP
-import com.squareup.kotlinpoet.MemberName
+import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import com.squareup.kotlinpoet.STAR
-import com.squareup.kotlinpoet.STRING
-import com.squareup.kotlinpoet.TypeSpec
-import com.squareup.kotlinpoet.TypeVariableName
-import com.squareup.kotlinpoet.UNIT
-import com.squareup.kotlinpoet.asClassName
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.security.SecurityScheme
 import java.lang.reflect.Type
@@ -89,10 +71,17 @@ class BaseFilesGenerator(
 
         val serverList = poetProperty("serverList", LIST.parameterizedBy(STRING)) {
             val servers = openAPI.servers
+            val pathParamRegex = """[{](\S+?)[}]""".toRegex()
 
             val block = CodeBlock.builder().apply {
                 servers.forEachIndexed { index, server ->
-                    val baseUrl = server.url.asBaseUrl()
+                    val resolvedUrl = server.url.replace(pathParamRegex) { r ->
+                        val key = r.groupValues[1]
+                        server.variables[key]?.run {
+                            default ?: enum?.firstOrNull()
+                        } ?: r.value
+                    }
+                    val baseUrl = resolvedUrl.asBaseUrl()
                     add("%S", baseUrl)
                     if (index < servers.size - 1) add(", ")
                 }
@@ -191,12 +180,20 @@ class BaseFilesGenerator(
 
             val pRetrofit = poetProperty(mnRetrofit.simpleName, PoetConstants.RETROFIT) {
                 val getFun = FunSpec.getterBuilder().apply {
-                    addStatement("return %N ?: %N().also { %N = it }", mnCurrentRetrofit, fnCreateRetrofit, mnCurrentRetrofit)
+                    addStatement(
+                        "return %N ?: %N().also { %N = it }",
+                        mnCurrentRetrofit,
+                        fnCreateRetrofit,
+                        mnCurrentRetrofit
+                    )
                 }.build()
                 getter(getFun)
             }
 
-            val pApiMap = poetProperty(mnApiHolder.simpleName, MUTABLE_MAP.parameterizedBy(Class::class.asClassName().parameterizedBy(STAR), ANY)) {
+            val pApiMap = poetProperty(
+                mnApiHolder.simpleName,
+                MUTABLE_MAP.parameterizedBy(Class::class.asClassName().parameterizedBy(STAR), ANY)
+            ) {
                 addModifiers(KModifier.PRIVATE)
                 initializer("%M()", PoetConstants.MUTABLE_MAP_OF)
             }
@@ -212,8 +209,16 @@ class BaseFilesGenerator(
                 addModifiers(KModifier.PRIVATE)
                 beginControlFlow("return %T().run", PoetConstants.MOSHI_BUILDER)
                 addStatement("add(%T::class.java, %T())", PoetConstants.DATE, PoetConstants.RFCDateAdapter)
-                addStatement("add(%T::class.java, %T)", PoetConstants.LOCAL_DATE, ClassName(options.packageName, "LocalDateJsonAdapter"))
-                addStatement("add(%T::class.java, %T)", PoetConstants.OFFSET_DATE_TIME, ClassName(options.packageName, "OffsetDateTimeJsonAdapter"))
+                addStatement(
+                    "add(%T::class.java, %T)",
+                    PoetConstants.LOCAL_DATE,
+                    ClassName(options.packageName, "LocalDateJsonAdapter")
+                )
+                addStatement(
+                    "add(%T::class.java, %T)",
+                    PoetConstants.OFFSET_DATE_TIME,
+                    ClassName(options.packageName, "OffsetDateTimeJsonAdapter")
+                )
                 addStatement("%N?.apply { decorate() }", mnDecorator)
                 addStatement("build()")
                 endControlFlow()
@@ -235,8 +240,15 @@ class BaseFilesGenerator(
                 beginControlFlow("return %T().run", PoetConstants.RETROFIT_BUILDER)
                 addStatement("baseUrl(%M.first())", MemberName(options.packageName, "serverList"))
                 addStatement("client(%N)", mnClient)
-                addStatement("addConverterFactory(%T.create())", ClassName("retrofit2.converter.scalars", "ScalarsConverterFactory"))
-                addStatement("addConverterFactory(%T.create(%N))", ClassName("retrofit2.converter.moshi", "MoshiConverterFactory"), mnMoshi)
+                addStatement(
+                    "addConverterFactory(%T.create())",
+                    ClassName("retrofit2.converter.scalars", "ScalarsConverterFactory")
+                )
+                addStatement(
+                    "addConverterFactory(%T.create(%N))",
+                    ClassName("retrofit2.converter.moshi", "MoshiConverterFactory"),
+                    mnMoshi
+                )
                 addStatement("addConverterFactory(%T)", ClassName(options.packageName, "EnumConverterFactory"))
                 addStatement("addConverterFactory(%T)", ClassName(options.packageName, "DateConverterFactory"))
                 addStatement("%N?.apply { decorate() }", mnDecorator)
@@ -296,7 +308,14 @@ class BaseFilesGenerator(
             addEnumConstant(mnAuthPositionHeader.simpleName)
             addEnumConstant(mnAuthPositionQuery.simpleName)
         }
-        val tInterceptor = createInterceptorClass(cnInterceptor, cnAuthInfo, mnAuthPositionHeader, mnAuthPositionQuery, tAuthInfo, tAuthPosition)
+        val tInterceptor = createInterceptorClass(
+            cnInterceptor,
+            cnAuthInfo,
+            mnAuthPositionHeader,
+            mnAuthPositionQuery,
+            tAuthInfo,
+            tAuthPosition
+        )
 
         addType(tInterceptor)
     }
@@ -313,9 +332,10 @@ class BaseFilesGenerator(
 
         val mnAuthMap = MemberName(cnInterceptor, "authMap")
 
-        val pAuthMap = poetProperty(mnAuthMap.simpleName, MUTABLE_MAP.parameterizedBy(STRING, cnAuthInfo), KModifier.PRIVATE) {
-            initializer("%M()", PoetConstants.MUTABLE_MAP_OF)
-        }
+        val pAuthMap =
+            poetProperty(mnAuthMap.simpleName, MUTABLE_MAP.parameterizedBy(STRING, cnAuthInfo), KModifier.PRIVATE) {
+                initializer("%M()", PoetConstants.MUTABLE_MAP_OF)
+            }
         val fClearAll = poetFunSpec("clearAllAuth") {
             addStatement("return %N.clear()", mnAuthMap)
         }
@@ -444,7 +464,12 @@ class BaseFilesGenerator(
         addFunction(fQuery)
     }.build()
 
-    private fun createSecurityFuns(cnAuthInfo: ClassName, mnAuthMap: MemberName, name: String, scheme: SecurityScheme): List<FunSpec> {
+    private fun createSecurityFuns(
+        cnAuthInfo: ClassName,
+        mnAuthMap: MemberName,
+        name: String,
+        scheme: SecurityScheme
+    ): List<FunSpec> {
         val fnSet = "set $name".asFunctionName()
         val fnClear = "clear $name".asFunctionName()
 
