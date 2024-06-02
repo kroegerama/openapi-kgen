@@ -6,6 +6,7 @@ import com.kroegerama.kgen.model.ModelTree
 import com.kroegerama.kgen.model.ModelTreeNode
 import com.kroegerama.kgen.model.OperationWithInfo
 import com.kroegerama.kgen.model.SchemaWithInfo
+import com.kroegerama.kgen.poet.nullable
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import io.swagger.v3.oas.models.OpenAPI
@@ -217,7 +218,7 @@ class OpenAPIAnalyzer(
             SchemaType.Array -> {
                 val arr = schema as ArraySchema
                 val inner = findTypeNameFor(arr.items)
-                LIST.parameterizedBy(inner)
+                LIST.parameterizedBy(inner.nullable(arr.items.nullable ?: false))
             }
             SchemaType.Map -> {
                 val map = schema as MapSchema

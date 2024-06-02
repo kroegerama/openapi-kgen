@@ -54,7 +54,7 @@ class PoetGeneratorSchemaHandler(
 
     override fun ArraySchema.createArrayTypeAlias(name: String): TypeAliasSpec {
         val innerType = analyzer.findTypeNameFor(items)
-        val listType = LIST.parameterizedBy(innerType)
+        val listType = LIST.parameterizedBy(innerType.nullable(items.nullable ?: false))
 
         return poetTypeAlias(name.asTypeName(), listType) {
             description?.let { addKdoc(it) }
@@ -177,7 +177,7 @@ class PoetGeneratorSchemaHandler(
 
             val typeName = when (propertySchema) {
                 is BinarySchema -> if (isMultipart) PoetConstants.OK_MULTIPART_PART else PoetConstants.OK_REQUEST_BODY
-                is ArraySchema -> LIST.parameterizedBy(PoetConstants.OK_REQUEST_BODY)
+                is ArraySchema -> LIST.parameterizedBy(PoetConstants.OK_REQUEST_BODY.nullable(propertySchema.items?.nullable ?: false))
                 else -> analyzer.findTypeNameFor(propertySchema)
             }.nullable(!required || propertyNullable)
 
