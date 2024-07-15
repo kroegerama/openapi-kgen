@@ -21,11 +21,10 @@ class KgenPlugin : Plugin<Project> {
     override fun apply(project: Project): Unit = project.run {
         val kgenExtension = extensions.create<KgenExtension>("kgen")
 
-        //moshix sealed plugin needs kapt
-        pluginManager.apply("kotlin-kapt")
-
         if (kgenExtension.useKsp) {
             pluginManager.apply("com.google.devtools.ksp")
+        } else {
+            pluginManager.apply("kotlin-kapt")
         }
 
         finishEvaluate(kgenExtension)
@@ -68,20 +67,20 @@ class KgenPlugin : Plugin<Project> {
     private fun Project.addDependencies(kgenExtension: KgenExtension) = dependencies {
         val processor = if (kgenExtension.useKsp) "ksp" else "kapt"
 
-        val moshi = "1.15.0"
+        val moshi = "1.15.1"
         add("implementation", "com.squareup.moshi:moshi:$moshi")
         add("implementation", "com.squareup.moshi:moshi-adapters:$moshi")
         add(processor, "com.squareup.moshi:moshi-kotlin-codegen:$moshi")
 
-        val okhttp = "4.11.0"
+        val okhttp = "4.12.0"
         add("implementation", "com.squareup.okhttp3:okhttp:$okhttp")
 
-        val retrofit = "2.9.0"
+        val retrofit = "2.11.0"
         add("implementation", "com.squareup.retrofit2:retrofit:$retrofit")
         add("implementation", "com.squareup.retrofit2:converter-moshi:$retrofit")
         add("implementation", "com.squareup.retrofit2:converter-scalars:$retrofit")
 
-        val moshiSealed = "0.24.0"
+        val moshiSealed = "0.27.2"
         add("implementation", "dev.zacsweers.moshix:moshi-sealed-runtime:$moshiSealed")
         add(processor, "dev.zacsweers.moshix:moshi-sealed-codegen:$moshiSealed")
     }
