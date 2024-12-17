@@ -9,6 +9,7 @@ object Constants {
     const val MIME_TYPE_URL_ENCODED = "application/x-www-form-urlencoded"
 
     const val AUTH_HEADER_NAME = "AUTH_INFO_HEADER"
+    const val AUTH_HEADER_VALUE_NAME_PREFIX = "AUTH_INFO_HEADER_"
     const val AUTH_HEADER_VALUE = "X-OpenAPI-Auth-Name"
 
     const val FALLBACK_TAG = "default"

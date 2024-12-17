@@ -1,11 +1,9 @@
 package com.kroegerama.kgen.poet
 
 import com.kroegerama.kgen.Constants
+import com.kroegerama.kgen.Constants.AUTH_HEADER_VALUE_NAME_PREFIX
 import com.kroegerama.kgen.OptionSet
-import com.kroegerama.kgen.language.asClassFileName
-import com.kroegerama.kgen.language.asFieldName
-import com.kroegerama.kgen.language.asFunctionName
-import com.kroegerama.kgen.language.asTypeName
+import com.kroegerama.kgen.language.*
 import com.kroegerama.kgen.model.OperationWithInfo
 import com.kroegerama.kgen.model.ResponseInfo
 import com.kroegerama.kgen.model.SchemaWithMime
@@ -192,9 +190,10 @@ class ApiFilesGenerator(
 
             val secHeader = poetAnnotation(PoetConstants.RETROFIT_HEADERS) {
                 operationInfo.securityNames.forEach { name ->
-                    //val secStr = "${Constants.AUTH_HEADER_VALUE}: ${scheme.name}"
+                    val mnHeaderValueName = MemberName(cnInterceptor, "$AUTH_HEADER_VALUE_NAME_PREFIX$name".asConstantName())
+
                     val block = buildCodeBlock {
-                        add("\${%M}: %L", mnAuthHeader, name)
+                        add("\${%M}: \${%M}", mnAuthHeader, mnHeaderValueName)
                     }
 
                     addMember("\"%L\"", block)

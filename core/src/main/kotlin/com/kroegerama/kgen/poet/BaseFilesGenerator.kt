@@ -1,9 +1,11 @@
 package com.kroegerama.kgen.poet
 
 import com.kroegerama.kgen.Constants
+import com.kroegerama.kgen.Constants.AUTH_HEADER_VALUE_NAME_PREFIX
 import com.kroegerama.kgen.OptionSet
 import com.kroegerama.kgen.Util
 import com.kroegerama.kgen.asBaseUrl
+import com.kroegerama.kgen.language.asConstantName
 import com.kroegerama.kgen.language.asFunctionName
 import com.kroegerama.kgen.openapi.OpenAPIAnalyzer
 import com.kroegerama.kgen.openapi.SecurityType
@@ -303,8 +305,6 @@ class BaseFilesGenerator(
 
         val tAuthInfo = createAuthInfoClass(cnAuthInfo, cnAuthPosition, mnAuthPositionHeader, mnAuthPositionQuery)
         val tAuthPosition = poetEnum(cnAuthPosition) {
-            addModifiers(KModifier.PRIVATE)
-
             addEnumConstant(mnAuthPositionHeader.simpleName)
             addEnumConstant(mnAuthPositionQuery.simpleName)
         }
@@ -330,18 +330,29 @@ class BaseFilesGenerator(
     ) = poetObject(cnInterceptor) {
         addSuperinterface(PoetConstants.OK_INTERCEPTOR)
 
-        val mnAuthMap = MemberName(cnInterceptor, "authMap")
+        val mnAuthProviderMap = MemberName(cnInterceptor, "authProviderMap")
+        val authGenLambda = LambdaTypeName.get(
+            returnType = cnAuthInfo.nullable(true)
+        )
 
-        val pAuthMap =
-            poetProperty(mnAuthMap.simpleName, MUTABLE_MAP.parameterizedBy(STRING, cnAuthInfo), KModifier.PRIVATE) {
-                initializer("%M()", PoetConstants.MUTABLE_MAP_OF)
-            }
+        val pAuthGenMap = poetProperty(
+            mnAuthProviderMap.simpleName,
+            MUTABLE_MAP.parameterizedBy(STRING, authGenLambda),
+            KModifier.PRIVATE
+        ) {
+            initializer("%M()", PoetConstants.MUTABLE_MAP_OF)
+        }
         val fClearAll = poetFunSpec("clearAllAuth") {
-            addStatement("return %N.clear()", mnAuthMap)
+            addStatement("return %N.clear()", mnAuthProviderMap)
         }
 
+        val securityHeaderValues = mutableListOf<PropertySpec>()
         val securityFuns = analyzer.securitySchemes.map { (securityName, securityScheme) ->
-            createSecurityFuns(cnAuthInfo, mnAuthMap, securityName, securityScheme)
+            val headerValueProperty = poetProperty("$AUTH_HEADER_VALUE_NAME_PREFIX$securityName".asConstantName(), STRING, KModifier.CONST) {
+                initializer("%S", securityName)
+            }
+            securityHeaderValues += headerValueProperty
+            createSecurityFuns(cnAuthInfo, mnAuthProviderMap, securityName, headerValueProperty, securityScheme)
         }.flatten()
 
         val headerName = poetProperty(Constants.AUTH_HEADER_NAME, STRING, KModifier.CONST) {
@@ -362,13 +373,14 @@ class BaseFilesGenerator(
 
                 val newRequest = request.newBuilder().run {
                     removeHeader(AUTH_INFO_HEADER)
-                    val required = authMap.filter { it.key in authHeaders }.values
-                    required.forEach { (position, paramName, paramValue) ->
-                        when (position) {
-                            %M -> addHeader(paramName, paramValue)
+                    val required = authProviderMap.filter { it.key in authHeaders }.values
+                    required.forEach { provider ->
+                        val authInfo = provider() ?: return@forEach
+                        when (authInfo.position) {
+                            %M -> addHeader(authInfo.paramName, authInfo.paramValue)
                             %M -> url(
                                 request.url.newBuilder()
-                                    .addQueryParameter(paramName, paramValue)
+                                    .addQueryParameter(authInfo.paramName, authInfo.paramValue)
                                     .build()
                             )
                         }
@@ -382,8 +394,9 @@ class BaseFilesGenerator(
             )
         }
 
-        addProperty(pAuthMap)
+        addProperty(pAuthGenMap)
         addProperty(headerName)
+        addProperties(securityHeaderValues)
         addFunctions(securityFuns)
         addFunction(fClearAll)
         addFunction(fIntercept)
@@ -397,108 +410,136 @@ class BaseFilesGenerator(
         mnAuthPositionHeader: MemberName,
         mnAuthPositionQuery: MemberName
     ) = poetClass(cnAuthInfo) {
-        addModifiers(KModifier.PRIVATE, KModifier.DATA)
+        addModifiers(KModifier.SEALED)
         val pPosition = poetProperty("position", cnAuthPosition) {}
         val pParamName = poetProperty("paramName", STRING) {}
         val pParamValue = poetProperty("paramValue", STRING) {}
         primaryConstructor(pPosition, pParamName, pParamValue)
-        val companion = createCompanion(cnAuthInfo, mnAuthPositionHeader, mnAuthPositionQuery)
-        addType(companion)
+
+        val cBasic = poetClass(cnAuthInfo.nestedClass("Basic")) {
+            primaryConstructor(
+                poetProperty("username", STRING) {},
+                poetProperty("password", STRING) {}
+            )
+            superclass(cnAuthInfo)
+            addSuperclassConstructorParameter("%M", mnAuthPositionHeader)
+            addSuperclassConstructorParameter("%S", "Authorization")
+            addSuperclassConstructorParameter("%T.basic(%N, %N)", PoetConstants.OK_CREDENTIALS, "username", "password")
+        }
+        val cBearer = poetClass(cnAuthInfo.nestedClass("Bearer")) {
+            primaryConstructor(
+                poetProperty("token", STRING) {}
+            )
+            superclass(cnAuthInfo)
+            addSuperclassConstructorParameter("%M", mnAuthPositionHeader)
+            addSuperclassConstructorParameter("%S", "Authorization")
+            addSuperclassConstructorParameter("%P", "Bearer \$token")
+        }
+        val cHeader = poetClass(cnAuthInfo.nestedClass("Header")) {
+            primaryConstructor(
+                poetProperty("name", STRING) {},
+                poetProperty("value", STRING) {}
+            )
+            superclass(cnAuthInfo)
+            addSuperclassConstructorParameter("%M", mnAuthPositionHeader)
+            addSuperclassConstructorParameter("%N", "name")
+            addSuperclassConstructorParameter("%N", "value")
+        }
+        val cQuery = poetClass(cnAuthInfo.nestedClass("Query")) {
+            primaryConstructor(
+                poetProperty("name", STRING) {},
+                poetProperty("value", STRING) {}
+            )
+            superclass(cnAuthInfo)
+            addSuperclassConstructorParameter("%M", mnAuthPositionQuery)
+            addSuperclassConstructorParameter("%N", "name")
+            addSuperclassConstructorParameter("%N", "value")
+        }
+        val cOAuth = poetClass(cnAuthInfo.nestedClass("OAuth")) {
+            primaryConstructor(
+                poetProperty("oauth", STRING) {}
+            )
+            superclass(cnAuthInfo)
+            addSuperclassConstructorParameter("%M", mnAuthPositionHeader)
+            addSuperclassConstructorParameter("%S", "Authorization")
+            addSuperclassConstructorParameter("%N", "oauth")
+        }
+
+        addType(cBasic)
+        addType(cBearer)
+        addType(cHeader)
+        addType(cQuery)
+        addType(cOAuth)
     }
-
-    private fun createCompanion(
-        cnAuthInfo: ClassName,
-        mnAuthPositionHeader: MemberName,
-        mnAuthPositionQuery: MemberName
-    ) = TypeSpec.companionObjectBuilder().apply {
-        val fBasic = poetFunSpec("basic") {
-            addParameter("username", STRING)
-            addParameter("password", STRING)
-            addStatement(
-                "return %T(%M, %S, %T.basic(username, password))",
-                cnAuthInfo,
-                mnAuthPositionHeader,
-                "Authorization",
-                PoetConstants.OK_CREDENTIALS
-            )
-            returns(cnAuthInfo)
-        }
-
-        val fBearer = poetFunSpec("bearer") {
-            addParameter("token", STRING)
-            addStatement(
-                "return %T(%M, %S, %P)",
-                cnAuthInfo,
-                mnAuthPositionHeader,
-                "Authorization",
-                "Bearer \$token"
-            )
-            returns(cnAuthInfo)
-        }
-
-        val fHeader = poetFunSpec("header") {
-            addParameter("name", STRING)
-            addParameter("value", STRING)
-            addStatement(
-                "return %T(%M, name, value)",
-                cnAuthInfo,
-                mnAuthPositionHeader
-            )
-            returns(cnAuthInfo)
-        }
-
-        val fQuery = poetFunSpec("query") {
-            addParameter("name", STRING)
-            addParameter("value", STRING)
-            addStatement(
-                "return %T(%M, name, value)",
-                cnAuthInfo,
-                mnAuthPositionQuery
-            )
-            returns(cnAuthInfo)
-        }
-
-        addFunction(fBasic)
-        addFunction(fBearer)
-        addFunction(fHeader)
-        addFunction(fQuery)
-    }.build()
 
     private fun createSecurityFuns(
         cnAuthInfo: ClassName,
         mnAuthMap: MemberName,
         name: String,
+        headerValueProperty: PropertySpec,
         scheme: SecurityScheme
     ): List<FunSpec> {
+        val fnSetProvider = "set $name provider".asFunctionName()
         val fnSet = "set $name".asFunctionName()
         val fnClear = "clear $name".asFunctionName()
+
+        val fSetProvider = poetFunSpec(fnSetProvider) {
+            val providerType = when (scheme.mapToType()) {
+                SecurityType.Basic -> LambdaTypeName.get(
+                    returnType = cnAuthInfo.nestedClass("Basic").nullable(true)
+                )
+
+                SecurityType.Bearer -> LambdaTypeName.get(
+                    returnType = cnAuthInfo.nestedClass("Bearer").nullable(true)
+                )
+
+                SecurityType.Header -> LambdaTypeName.get(
+                    returnType = cnAuthInfo.nestedClass("Header").nullable(true)
+                )
+
+                SecurityType.Query -> LambdaTypeName.get(
+                    returnType = cnAuthInfo.nestedClass("Query").nullable(true)
+                )
+
+                SecurityType.OAuth -> LambdaTypeName.get(
+                    returnType = cnAuthInfo.nestedClass("OAuth").nullable(true)
+                )
+
+                SecurityType.Unknown -> throw IllegalStateException("SecurityScheme not supported: $scheme")
+            }
+            addParameter(
+                "provider",
+                providerType
+            )
+            addStatement("%N[%N] = %N", mnAuthMap, headerValueProperty, "provider")
+        }
 
         val fSet = poetFunSpec(fnSet) {
             when (scheme.mapToType()) {
                 SecurityType.Basic -> {
                     addParameter("username", STRING)
                     addParameter("password", STRING)
-                    addStatement("%N[%S] = %T.basic(username, password)", mnAuthMap, name, cnAuthInfo)
+                    addStatement("%N { %T(username, password) }", fSetProvider, cnAuthInfo.nestedClass("Basic"))
                 }
 
                 SecurityType.Bearer -> {
                     addParameter("token", STRING)
-                    addStatement("%N[%S] = %T.bearer(token)", mnAuthMap, name, cnAuthInfo)
+                    addStatement("%N { %T(token) }", fSetProvider, cnAuthInfo.nestedClass("Bearer"))
                 }
 
                 SecurityType.Header -> {
                     addParameter("apiKey", STRING)
-                    addStatement("%N[%S] = %T.header(%S, apiKey)", mnAuthMap, name, cnAuthInfo, scheme.name)
+                    addStatement("%N { %T(%S, apiKey) }", fSetProvider, cnAuthInfo.nestedClass("Header"), scheme.name)
                 }
 
                 SecurityType.Query -> {
                     addParameter("apiKey", STRING)
-                    addStatement("%N[%S] = %T.query(%S, apiKey)", mnAuthMap, name, cnAuthInfo, scheme.name)
+                    addStatement("%N { %T(%S, apiKey) }", fSetProvider, cnAuthInfo.nestedClass("Query"), scheme.name)
                 }
 
                 SecurityType.OAuth -> {
                     addParameter("oauth", STRING)
-                    addStatement("%N[%S] = %T.header(%S, oauth)", mnAuthMap, name, cnAuthInfo, "Authorization")
+                    addStatement("%N { %T(oauth) }", fSetProvider, cnAuthInfo.nestedClass("OAuth"))
                 }
 
                 SecurityType.Unknown -> {
@@ -508,10 +549,50 @@ class BaseFilesGenerator(
         }
 
         val fClear = poetFunSpec(fnClear) {
-            addStatement("%N.remove(%S)", mnAuthMap, name)
+            addStatement("%N.remove(%N)", mnAuthMap, headerValueProperty)
         }
 
-        return listOf(fSet, fClear)
+        return listOf(fSetProvider, fSet, fClear)
+
+//        val fSet = poetFunSpec(fnSet) {
+//            when (scheme.mapToType()) {
+//                SecurityType.Basic -> {
+//                    addParameter("username", STRING)
+//                    addParameter("password", STRING)
+//                    addStatement("%N[%S] = %T.basic(username, password)", mnAuthMap, name, cnAuthInfo)
+//                }
+//
+//                SecurityType.Bearer -> {
+//                    addParameter("token", STRING)
+//                    addStatement("%N[%S] = %T.bearer(token)", mnAuthMap, name, cnAuthInfo)
+//                }
+//
+//                SecurityType.Header -> {
+//                    addParameter("apiKey", STRING)
+//                    addStatement("%N[%S] = %T.header(%S, apiKey)", mnAuthMap, name, cnAuthInfo, scheme.name)
+//                }
+//
+//                SecurityType.Query -> {
+//                    addParameter("apiKey", STRING)
+//                    addStatement("%N[%S] = %T.query(%S, apiKey)", mnAuthMap, name, cnAuthInfo, scheme.name)
+//                }
+//
+//                SecurityType.OAuth -> {
+//                    addParameter("oauth", STRING)
+//                    addStatement("%N[%S] = %T.header(%S, oauth)", mnAuthMap, name, cnAuthInfo, "Authorization")
+//                }
+//
+//                SecurityType.Unknown -> {
+//                    throw IllegalStateException("SecurityScheme not supported: $scheme")
+//                }
+//            }
+//        }
+//
+//        val fClear = poetFunSpec(fnClear) {
+//            addStatement("%N.remove(%S)", mnAuthMap, name)
+//        }
+//
+//        return listOf(fSet, fClear)
     }
 
     private fun getEnumConverterFile() = prepareFileSpec(options.packageName, "EnumConverterFactory") {
