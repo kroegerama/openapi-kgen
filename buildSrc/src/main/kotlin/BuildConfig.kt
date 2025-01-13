@@ -1,7 +1,6 @@
 import org.gradle.api.Action
 import org.gradle.api.publish.maven.*
 
-@Suppress("UnstableApiUsage")
 object BuildConfig {
 
     val pomAction = Action<MavenPom> {
