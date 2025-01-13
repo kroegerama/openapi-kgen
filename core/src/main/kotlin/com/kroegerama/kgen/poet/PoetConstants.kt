@@ -76,7 +76,9 @@ object PoetConstants {
     val OFFSET_DATE_TIME = OffsetDateTime::class.asClassName()
     val LOCAL_DATE = LocalDate::class.asClassName()
 
-    val RFCDateAdapter = ClassName("com.squareup.moshi.adapters", "Rfc3339DateJsonAdapter")
+    val RFC_DATE_ADAPTER = ClassName("com.squareup.moshi.adapters", "Rfc3339DateJsonAdapter")
 
     val SEALED_TYPE_LABEL = ClassName("dev.zacsweers.moshix.sealed.annotations", "TypeLabel")
+
+    val COMPOSE_IMMUTABLE = ClassName("androidx.compose.runtime", "Immutable")
 }

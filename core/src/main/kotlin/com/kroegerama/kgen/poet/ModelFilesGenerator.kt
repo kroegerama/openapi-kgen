@@ -63,7 +63,11 @@ class ModelFilesGenerator(
 
         prepareFileSpec(options.modelPackage, name.asClassFileName()) {
             val className = ClassName(options.modelPackage, name.asTypeName())
-            val type = schema.asTypeSpec(className) {}
+            val type = schema.asTypeSpec(className) {
+                if (options.useCompose) {
+                    addAnnotation(PoetConstants.COMPOSE_IMMUTABLE)
+                }
+            }
             addType(type)
         }
     }
@@ -77,10 +81,16 @@ class ModelFilesGenerator(
 
             val rootType = if (schemaInfo.schemaType == SchemaType.OneOf) {
                 schema.asSealedTypeSpec(className) {
+                    if (options.useCompose) {
+                        addAnnotation(PoetConstants.COMPOSE_IMMUTABLE)
+                    }
                     addChildren(className, children)
                 }
             } else {
                 schema.asTypeSpec(className) {
+                    if (options.useCompose) {
+                        addAnnotation(PoetConstants.COMPOSE_IMMUTABLE)
+                    }
                     addChildren(className, children)
                 }
             }

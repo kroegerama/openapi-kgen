@@ -8,6 +8,7 @@ data class OptionSet(
     val verbose: Boolean,
     val dryRun: Boolean,
     val useInlineClass: Boolean,
+    val useCompose: Boolean,
     val outputDirIsSrcDir: Boolean
 ) {
 

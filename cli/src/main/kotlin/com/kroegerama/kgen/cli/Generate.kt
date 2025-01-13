@@ -60,6 +60,13 @@ class Generate : Runnable {
     private val useInlineClass = false
 
     @Option(
+        name = ["--use-compose"],
+        title = "Use compose",
+        description = "Use compose immutable annotation for named data classes."
+    )
+    private val useCompose = false
+
+    @Option(
         name = ["--allow-parse-errors"],
         title = "Allow parse errors",
         description = "Try to generate classes, even if parsing errors occur in the spec."
@@ -75,6 +82,7 @@ class Generate : Runnable {
             verbose = verbose,
             dryRun = dryRun,
             useInlineClass = useInlineClass,
+            useCompose = useCompose,
             outputDirIsSrcDir = false
         )
         println("Selected options: $options")

@@ -8,6 +8,7 @@ import com.kroegerama.kgen.openapi.parseSpecFile
 import com.kroegerama.kgen.poet.PoetGenerator
 import org.gradle.api.DefaultTask
 import org.gradle.api.InvalidUserDataException
+import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.*
 import org.gradle.kotlin.dsl.property
 import org.gradle.kotlin.dsl.setProperty
@@ -40,6 +41,10 @@ open class KgenTask : DefaultTask() {
     @Optional
     val useInlineClasses = project.objects.property<Boolean>()
 
+    @Input
+    @Optional
+    val useCompose = project.objects.property<Boolean>()
+
     @OutputDirectory
     val output = project.objects.property<File>()
 
@@ -47,12 +52,13 @@ open class KgenTask : DefaultTask() {
     @Optional
     val allowParseErrors = project.objects.property<Boolean>()
 
-    fun setProperties(extension: KgenExtension, outputFolder: File) {
+    fun setProperties(extension: KgenExtension, outputFolder: Provider<File>) {
         specFile.set(extension.specFile)
         specUri.set(extension.specUri)
         packageName.set(extension.packageName)
         limitApis.set(extension.limitApis)
         useInlineClasses.set(extension.useInlineClasses)
+        useCompose.set(extension.useCompose)
         output.set(outputFolder)
     }
 
@@ -92,6 +98,7 @@ open class KgenTask : DefaultTask() {
             verbose = false,
             dryRun = false,
             useInlineClass = useInlineClasses.orNull ?: false,
+            useCompose = useCompose.orNull ?: false,
             outputDirIsSrcDir = true
         )
 

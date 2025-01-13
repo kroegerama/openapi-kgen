@@ -3,6 +3,7 @@ package com.kroegerama.kgen.gradle
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.ExtensionContainer
+import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.*
 import org.gradle.plugins.ide.idea.model.IdeaModel
@@ -16,31 +17,33 @@ class KgenPlugin : Plugin<Project> {
         val kgenExtension = extensions.create<KgenExtension>("kgen")
 
         pluginManager.apply("com.google.devtools.ksp")
+        pluginManager.apply("idea")
 
         finishEvaluate(kgenExtension)
     }
 
     private fun Project.finishEvaluate(kgenExtension: KgenExtension) {
-        val outputFolder = buildDir.resolve("generated/kgen/main/kotlin").also { it.mkdirs() }
+        val outputDirectory = layout.buildDirectory.dir("generated/kgen/main/kotlin").map { it.asFile }
 
         val kgenTask = tasks.register<KgenTask>("generateKgen") {
-            setProperties(kgenExtension, outputFolder)
+            setProperties(kgenExtension, outputDirectory)
         }
 
         addDependencies(kgenExtension)
-        updateExtensions(outputFolder)
+        updateExtensions(outputDirectory)
         updateTasks(kgenTask)
     }
 
-    private fun Project.updateExtensions(outputFolder: File) {
-        apply(plugin = "idea")
+    private fun Project.updateExtensions(outputFolder: Provider<File>) {
         configure<IdeaModel> {
             module {
-                generatedSourceDirs = generatedSourceDirs + outputFolder
+                generatedSourceDirs.add(outputFolder.get())
             }
         }
-        kotlinExtension.sourceSets.maybeCreate("main").kotlin {
-            srcDir(outputFolder)
+        kotlinExtension.sourceSets {
+            maybeCreate("main").kotlin {
+                srcDir(outputFolder)
+            }
         }
     }
 
@@ -51,22 +54,28 @@ class KgenPlugin : Plugin<Project> {
     }
 
     private fun Project.addDependencies(kgenExtension: KgenExtension) = dependencies {
-        val moshi = "1.15.1"
+        val moshi = "1.15.2"
+        val okhttp = "4.12.0"
+        val retrofit = "2.11.0"
+        val moshiSealed = "0.29.0"
+        val compose = "1.7.6"
+
         add("implementation", "com.squareup.moshi:moshi:$moshi")
         add("implementation", "com.squareup.moshi:moshi-adapters:$moshi")
         add("ksp", "com.squareup.moshi:moshi-kotlin-codegen:$moshi")
 
-        val okhttp = "4.12.0"
         add("implementation", "com.squareup.okhttp3:okhttp:$okhttp")
 
-        val retrofit = "2.11.0"
         add("implementation", "com.squareup.retrofit2:retrofit:$retrofit")
         add("implementation", "com.squareup.retrofit2:converter-moshi:$retrofit")
         add("implementation", "com.squareup.retrofit2:converter-scalars:$retrofit")
 
-        val moshiSealed = "0.28.0"
         add("implementation", "dev.zacsweers.moshix:moshi-sealed-runtime:$moshiSealed")
         add("ksp", "dev.zacsweers.moshix:moshi-sealed-codegen:$moshiSealed")
+
+        if (kgenExtension.useCompose) {
+            add("implementation", "androidx.compose.runtime:runtime:$compose")
+        }
     }
 
     private inline fun <reified T> ExtensionContainer.findByNameTyped(name: String): T? = findByName(name) as? T
