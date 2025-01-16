@@ -4,7 +4,6 @@ import com.kroegerama.kgen.OptionSet
 import com.kroegerama.kgen.asFileHeader
 import com.kroegerama.kgen.openapi.OpenAPIAnalyzer
 import com.kroegerama.kgen.openapi.ParameterType
-import com.kroegerama.kgen.openapi.mapToName
 import com.kroegerama.kgen.openapi.mapToTypeName
 import com.kroegerama.kgen.sanitizePath
 import com.squareup.kotlinpoet.AnnotationSpec
@@ -21,7 +20,7 @@ interface IPoetGeneratorBase {
     fun createParameterAnnotation(parameterType: ParameterType, name: String): AnnotationSpec
     fun createPartAnnotation(name: String?): AnnotationSpec
     fun createFieldAnnotation(name: String): AnnotationSpec
-    fun createHttpMethodAnnotation(method: PathItem.HttpMethod, path: String): AnnotationSpec
+    fun createHttpMethodAnnotation(method: PathItem.HttpMethod, path: String, hasBody: Boolean): AnnotationSpec
     fun createJsonAnnotation(name: String): AnnotationSpec
     fun createJsonClassAnnotation(discriminator: String? = null): AnnotationSpec
 }
@@ -59,9 +58,11 @@ class PoetGeneratorBase(
             addMember("%S", name)
         }
 
-    override fun createHttpMethodAnnotation(method: PathItem.HttpMethod, path: String) =
-        poetAnnotation(method.mapToName()) {
-            addMember("%S", path.sanitizePath())
+    override fun createHttpMethodAnnotation(method: PathItem.HttpMethod, path: String, hasBody: Boolean) =
+        poetAnnotation(PoetConstants.RETROFIT_HTTP) {
+            addMember("method = %S", method.name.uppercase())
+            addMember("path = %S", path.sanitizePath())
+            addMember("hasBody = %L", hasBody)
         }
 
     override fun createJsonAnnotation(name: String) =

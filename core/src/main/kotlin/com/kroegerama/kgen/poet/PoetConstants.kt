@@ -23,14 +23,7 @@ object PoetConstants {
     val JSON_READER = ClassName(PKG_MOSHI, "JsonReader")
     val JSON_WRITER = ClassName(PKG_MOSHI, "JsonWriter")
 
-    val RETROFIT_GET = ClassName(PKG_RETROFIT_HTTP, "GET")
-    val RETROFIT_POST = ClassName(PKG_RETROFIT_HTTP, "POST")
-    val RETROFIT_PUT = ClassName(PKG_RETROFIT_HTTP, "PUT")
-    val RETROFIT_DELETE = ClassName(PKG_RETROFIT_HTTP, "DELETE")
-    val RETROFIT_PATCH = ClassName(PKG_RETROFIT_HTTP, "PATCH")
-    val RETROFIT_HEAD = ClassName(PKG_RETROFIT_HTTP, "HEAD")
-    val RETROFIT_OPTIONS = ClassName(PKG_RETROFIT_HTTP, "OPTIONS")
-    val RETROFIT_TRACE = ClassName(PKG_RETROFIT_HTTP, "TRACE")
+    val RETROFIT_HTTP = ClassName(PKG_RETROFIT_HTTP, "HTTP")
 
     val RETROFIT_MULTIPART = ClassName(PKG_RETROFIT_HTTP, "Multipart")
     val RETROFIT_FORM_ENCODED = ClassName(PKG_RETROFIT_HTTP, "FormUrlEncoded")

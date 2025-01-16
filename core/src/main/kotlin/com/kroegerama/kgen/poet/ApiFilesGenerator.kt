@@ -181,7 +181,7 @@ class ApiFilesGenerator(
         val suffix = if (sync) "Call" else ""
         "__$funName$suffix"
     }) {
-        val methodAnnotation = createHttpMethodAnnotation(operationInfo.method, operationInfo.path)
+        val methodAnnotation = createHttpMethodAnnotation(operationInfo.method, operationInfo.path, request != null)
         addAnnotation(methodAnnotation)
 
         if (operationInfo.securityNames.isNotEmpty()) {

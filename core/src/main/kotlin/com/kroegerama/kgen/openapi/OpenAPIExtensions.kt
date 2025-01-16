@@ -4,7 +4,6 @@ import com.kroegerama.kgen.Constants
 import com.kroegerama.kgen.poet.PoetConstants
 import com.squareup.kotlinpoet.*
 import io.swagger.v3.oas.models.OpenAPI
-import io.swagger.v3.oas.models.PathItem
 import io.swagger.v3.oas.models.media.*
 import io.swagger.v3.oas.models.parameters.*
 import io.swagger.v3.oas.models.security.SecurityScheme
@@ -27,12 +26,14 @@ fun Schema<*>.mapToTypeName(): ClassName = when (this) {
         SchemaTypeUtil.INTEGER64_FORMAT -> LONG
         else -> throw IllegalStateException("Integer format not allowed: $format")
     }
+
     is NumberSchema -> when (format) {
         null -> FLOAT
         SchemaTypeUtil.FLOAT_FORMAT -> FLOAT
         SchemaTypeUtil.DOUBLE_FORMAT -> DOUBLE
         else -> throw IllegalStateException("Number format not allowed: $format")
     }
+
     is BooleanSchema -> BOOLEAN
 
     is BinarySchema -> BYTE_ARRAY
@@ -86,17 +87,6 @@ fun Schema<*>.getSchemaType() = when {
     else -> SchemaType.Object
 }
 
-fun PathItem.HttpMethod.mapToName(): ClassName = when (this) {
-    PathItem.HttpMethod.POST -> PoetConstants.RETROFIT_POST
-    PathItem.HttpMethod.GET -> PoetConstants.RETROFIT_GET
-    PathItem.HttpMethod.PUT -> PoetConstants.RETROFIT_PUT
-    PathItem.HttpMethod.PATCH -> PoetConstants.RETROFIT_PATCH
-    PathItem.HttpMethod.DELETE -> PoetConstants.RETROFIT_DELETE
-    PathItem.HttpMethod.HEAD -> PoetConstants.RETROFIT_HEAD
-    PathItem.HttpMethod.OPTIONS -> PoetConstants.RETROFIT_OPTIONS
-    PathItem.HttpMethod.TRACE -> PoetConstants.RETROFIT_TRACE
-}
-
 fun String.mapMimeToRequestType(): OperationRequestType = when (this) {
     Constants.MIME_TYPE_JSON -> OperationRequestType.Default
     Constants.MIME_TYPE_MULTIPART_FORM_DATA -> OperationRequestType.Multipart
@@ -125,11 +115,13 @@ fun SecurityScheme.mapToType(): SecurityType = when (type) {
         "bearer" -> SecurityType.Bearer
         else -> SecurityType.Unknown
     }
+
     SecurityScheme.Type.APIKEY -> when (`in`) {
         SecurityScheme.In.HEADER -> SecurityType.Header
         SecurityScheme.In.QUERY -> SecurityType.Query
         else -> SecurityType.Unknown
     }
+
     SecurityScheme.Type.OAUTH2 -> SecurityType.OAuth
     else -> SecurityType.Unknown
 }
