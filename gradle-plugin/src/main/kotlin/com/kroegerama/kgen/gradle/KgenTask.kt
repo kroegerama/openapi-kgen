@@ -1,93 +1,91 @@
 package com.kroegerama.kgen.gradle
 
 import com.kroegerama.kgen.OptionSet
-import com.kroegerama.kgen.generator.FileHelper
 import com.kroegerama.kgen.generator.Generator
-import com.kroegerama.kgen.openapi.OpenAPIAnalyzer
-import com.kroegerama.kgen.openapi.parseSpecFile
-import com.kroegerama.kgen.poet.PoetGenerator
 import org.gradle.api.DefaultTask
 import org.gradle.api.InvalidUserDataException
+import org.gradle.api.file.Directory
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
+import org.gradle.api.provider.SetProperty
 import org.gradle.api.tasks.*
-import org.gradle.kotlin.dsl.property
-import org.gradle.kotlin.dsl.setProperty
-import java.io.File
 
 @CacheableTask
-open class KgenTask : DefaultTask() {
+abstract class KgenTask : DefaultTask() {
 
-    init {
-        group = "kgen"
-        description = "Generates souce files from the OpenAPI Spec"
-    }
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    @get:Optional
+    abstract val specFile: RegularFileProperty
 
-    @InputFile
-    @PathSensitive(PathSensitivity.RELATIVE)
-    @Optional
-    val specFile = project.objects.property<File>()
+    @get:Input
+    @get:Optional
+    abstract val specUri: Property<String>
 
-    @Input
-    @Optional
-    val specUri = project.objects.property<String>()
+    @get:Input
+    abstract val packageName: Property<String>
 
-    @Input
-    val packageName = project.objects.property<String>()
+    @get:OutputDirectory
+    abstract val output: DirectoryProperty
 
-    @Input
-    val limitApis = project.objects.setProperty<String>()
+    @get:Input
+    abstract val limitApis: SetProperty<String>
 
-    @Input
-    @Optional
-    val useInlineClasses = project.objects.property<Boolean>()
+    @get:Input
+    @get:Optional
+    abstract val generateAllNamedSchemas: Property<Boolean>
 
-    @Input
-    @Optional
-    val useCompose = project.objects.property<Boolean>()
+    @get:Input
+    @get:Optional
+    protected abstract val useCompose: Property<Boolean>
 
-    @OutputDirectory
-    val output = project.objects.property<File>()
+    @get:Input
+    @get:Optional
+    abstract val allowParseErrors: Property<Boolean>
 
-    @Input
-    @Optional
-    val allowParseErrors = project.objects.property<Boolean>()
+    @get:Input
+    @get:Optional
+    abstract val verbose: Property<Boolean>
 
-    fun setProperties(extension: KgenExtension, outputFolder: Provider<File>) {
-        specFile.set(extension.specFile)
-        specUri.set(extension.specUri)
-        packageName.set(extension.packageName)
-        limitApis.set(extension.limitApis)
-        useInlineClasses.set(extension.useInlineClasses)
-        useCompose.set(extension.useCompose)
+    internal fun setProperties(extension: KgenExtension, info: SpecInfo, outputFolder: Provider<Directory>) {
+        specFile.set(info.specFile)
+        specUri.set(info.specUri)
+        packageName.set(info.name)
         output.set(outputFolder)
+        limitApis.set(info.limitApis)
+        generateAllNamedSchemas.set(info.generateAllNamedSchemas)
+        useCompose.set(extension.useCompose)
+        allowParseErrors.set(info.allowParseErrors)
+        verbose.set(info.verbose)
     }
 
     @TaskAction
     fun runTask() {
-        output.get().apply {
-            when {
-                !exists() -> mkdirs()
-                isDirectory -> {
-                    deleteRecursively()
-                    mkdir()
+        val specFile = specFile.orNull?.asFile
+        val specUri = specUri.orNull
+
+        if (specFile != null && specUri != null) {
+            throw InvalidUserDataException("only one of specFile or specUri can be set, got specFile=$specFile and specUri=$specUri")
+        }
+
+        val specPath = when {
+            specFile != null -> {
+                require(specFile.exists()) { "specFile $specFile not found" }
+                if (!specFile.exists()) {
+                    throw InvalidUserDataException("specFile $specFile not found")
                 }
-                else -> throw IllegalStateException("Could not prepare output folder: $this")
+                specFile.absolutePath
             }
+
+            !specUri.isNullOrBlank() -> specUri
+            else -> throw InvalidUserDataException("specFile or specUri needs to be set")
         }
-        specFile.orNull?.run {
-            if (!exists()) {
-                throw InvalidUserDataException("specFile not found $this")
-            }
-        }
-        specUri.orNull?.run {
-            if (isBlank()) {
-                throw InvalidUserDataException("specUri is empty")
-            }
-        }
-        val specPath = specFile.orNull?.absolutePath ?: specUri.orNull ?: throw InvalidUserDataException("specFile or specUri needs to be set")
-        val outputDir = output.get()
+
+        val outputDir = output.get().asFile
         if (!outputDir.exists()) {
-            throw InvalidUserDataException("Output path does not exist")
+            throw InvalidUserDataException("Output path does not exist $outputDir")
         }
 
         val options = OptionSet(
@@ -95,21 +93,12 @@ open class KgenTask : DefaultTask() {
             packageName = packageName.get(),
             outputDir = outputDir.absolutePath,
             limitApis = limitApis.get(),
-            verbose = false,
-            dryRun = false,
-            useInlineClass = useInlineClasses.orNull ?: false,
-            useCompose = useCompose.orNull ?: false,
-            outputDirIsSrcDir = true
+            generateAllNamedSchemas = generateAllNamedSchemas.get(),
+            useCompose = useCompose.get(),
+            allowParseErrors = allowParseErrors.get(),
+            outputDirIsSrcDir = true,
+            verbose = verbose.get()
         )
-
-        val openAPI = parseSpecFile(options.specFile, allowParseErrors.getOrElse(false))
-
-        val analyzer = OpenAPIAnalyzer(openAPI, options)
-        val poetGenerator = PoetGenerator(openAPI, options, analyzer)
-        val fileHelper = FileHelper(options)
-        val generator = Generator(options, poetGenerator, fileHelper, analyzer)
-
-        generator.generate()
+        Generator(options).generate()
     }
-
 }

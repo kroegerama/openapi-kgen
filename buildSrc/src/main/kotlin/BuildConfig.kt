@@ -1,5 +1,8 @@
 import org.gradle.api.Action
-import org.gradle.api.publish.maven.*
+import org.gradle.api.publish.maven.MavenPom
+import org.gradle.api.publish.maven.MavenPomDeveloperSpec
+import org.gradle.api.publish.maven.MavenPomLicenseSpec
+import org.gradle.api.publish.maven.MavenPomScm
 
 object BuildConfig {
 

@@ -1,14 +1,15 @@
 plugins {
     `kotlin-dsl`
     id("java-gradle-plugin")
-    id("com.gradle.plugin-publish") version V.GRADLE_PUBLISH
+    alias(libs.plugins.gradle.publish)
 }
 
 dependencies {
     implementation(project(":core"))
 
     implementation(gradleApi())
-    implementation(Dep.KOTLIN_GRADLE)
+    implementation(libs.kotlin.gradle.plugin)
+    compileOnly(libs.agp)
 }
 
 gradlePlugin {

@@ -2,20 +2,18 @@ package com.kroegerama.kgen.cli
 
 import com.kroegerama.kgen.Constants
 import com.kroegerama.kgen.OptionSet
-import com.kroegerama.kgen.generator.FileHelper
 import com.kroegerama.kgen.generator.Generator
-import com.kroegerama.kgen.openapi.OpenAPIAnalyzer
-import com.kroegerama.kgen.openapi.parseSpecFile
-import com.kroegerama.kgen.poet.PoetGenerator
 import io.airlift.airline.Arguments
 import io.airlift.airline.Command
 import io.airlift.airline.Option
-import java.io.File
 
 @Command(name = "generate", description = "Generate code from the specified OpenAPI Spec.")
-class Generate : Runnable {
+class GenerateCommand : Runnable {
 
-    @Option(name = ["-p", "--package-name"], title = "package name")
+    @Option(
+        name = ["-p", "--package-name"],
+        title = "package name"
+    )
     private val packageName: String = Constants.DEFAULT_PACKAGE_NAME
 
     @Option(
@@ -40,24 +38,16 @@ class Generate : Runnable {
     private val limitApis = ""
 
     @Option(
+        name = ["-a", "--generate-all-named-schemas"],
+        title = "Generate all named schemas, even those that would have been filtered via --limit-apis."
+    )
+    private val generateAllNamedSchemas = false
+
+    @Option(
         name = ["-v", "--verbose"],
         title = "detailed output"
     )
     private val verbose = true
-
-    @Option(
-        name = ["-d", "--dry-run"],
-        title = "Dry run",
-        description = "Do not create any files. Just parse and analyze."
-    )
-    private val dryRun = false
-
-    @Option(
-        name = ["--use-inline-class"],
-        title = "Use inline class",
-        description = "Use inline classes for named primitive types. Else use typealias."
-    )
-    private val useInlineClass = false
 
     @Option(
         name = ["--use-compose"],
@@ -79,30 +69,12 @@ class Generate : Runnable {
             packageName = packageName,
             outputDir = output,
             limitApis = limitApis.split(",").filter { it.isNotBlank() }.toSet(),
-            verbose = verbose,
-            dryRun = dryRun,
-            useInlineClass = useInlineClass,
+            generateAllNamedSchemas = generateAllNamedSchemas,
             useCompose = useCompose,
-            outputDirIsSrcDir = false
+            allowParseErrors = allowParseErrors,
+            outputDirIsSrcDir = false,
+            verbose = verbose
         )
-        println("Selected options: $options")
-        println()
-
-        val output = File(output)
-        if (!output.exists() || !output.isDirectory) {
-            println("Output directory does not exist")
-            return
-        }
-
-        if (options.verbose) println("Parsing spec file...")
-        val openAPI = parseSpecFile(options.specFile, allowParseErrors)
-
-        if (options.verbose) println("Generating...")
-        val analyzer = OpenAPIAnalyzer(openAPI, options)
-        val poetGenerator = PoetGenerator(openAPI, options, analyzer)
-        val fileHelper = FileHelper(options)
-        val generator = Generator(options, poetGenerator, fileHelper, analyzer)
-
-        generator.generate()
+        Generator(options).generate()
     }
 }

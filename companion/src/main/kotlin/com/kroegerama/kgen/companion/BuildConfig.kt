@@ -1,9 +1,8 @@
-package com.kroegerama.kgen
+package com.kroegerama.kgen.companion
 
 import java.util.*
 
 object BuildConfig {
-
     private val properties by lazy {
         Properties().apply {
             try {

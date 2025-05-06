@@ -5,11 +5,11 @@ data class OptionSet(
     val packageName: String,
     val outputDir: String,
     val limitApis: Set<String>,
-    val verbose: Boolean,
-    val dryRun: Boolean,
-    val useInlineClass: Boolean,
+    val generateAllNamedSchemas: Boolean,
     val useCompose: Boolean,
-    val outputDirIsSrcDir: Boolean
+    val allowParseErrors: Boolean,
+    val outputDirIsSrcDir: Boolean,
+    val verbose: Boolean
 ) {
 
     val apiPackage = "$packageName.api"

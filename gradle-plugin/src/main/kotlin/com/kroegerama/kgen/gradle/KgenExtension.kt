@@ -1,17 +1,51 @@
 package com.kroegerama.kgen.gradle
 
-import java.io.File
+import org.gradle.api.Action
+import org.gradle.api.NamedDomainObjectContainer
+import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.Property
+import org.gradle.api.provider.SetProperty
 
-open class KgenExtension {
-    var specFile: File? = null
-    var specUri: String? = null
-    var packageName: String? = null
-    var limitApis = emptySet<String>()
-    var useInlineClasses = false
-    var useCompose = false
+interface KgenExtension {
 
-    override fun toString(): String {
-        return "KgenExtension(specFile=$specFile, specUri=$specUri, packageName='$packageName', limitApis=$limitApis, useInlineClasses=$useInlineClasses, useCompose=$useCompose)"
+    val useCompose: Property<Boolean>
+    val specs: NamedDomainObjectContainer<SpecInfo>
+
+    fun spec(packageName: String, action: Action<SpecInfo>) {
+        specs.register(packageName) {
+            specFile.convention(null)
+            specUri.convention(null)
+            limitApis.convention(emptySet())
+            generateAllNamedSchemas.convention(false)
+            allowParseErrors.convention(false)
+            verbose.convention(false)
+            action.execute(this)
+        }
     }
+}
 
+interface SpecInfo {
+    val name: String
+    val specFile: RegularFileProperty
+    val specUri: Property<String>
+    val limitApis: SetProperty<String>
+    val generateAllNamedSchemas: Property<Boolean>
+    val allowParseErrors: Property<Boolean>
+    val verbose: Property<Boolean>
+
+    /**
+     * used to stop users from using
+     * ```
+     * spec(packageName = "a.b.c") {
+     *   useCompose = true
+     * }
+     * ```
+     * instead of the correct one
+     * ```
+     * useCompose = true
+     * spec(packageName = "a.b.c") {
+     *   ...
+     * }
+     */
+    val useCompose get() = Unit
 }

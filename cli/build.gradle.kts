@@ -1,14 +1,14 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 plugins {
-    id("com.github.johnrengelman.shadow") version V.SHADOW
+    alias(libs.plugins.shadow)
 }
 
 dependencies {
     implementation(project(":core"))
 
-    implementation(Dep.AIRLINE)
-    api(Dep.GUAVA)
+    implementation(libs.airline)
+    api(libs.guava)
 }
 
 tasks {

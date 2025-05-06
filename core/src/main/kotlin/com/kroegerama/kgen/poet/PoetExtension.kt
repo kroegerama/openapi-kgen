@@ -30,6 +30,9 @@ fun poetConstructor(block: FunSpec.Builder.() -> Unit) =
 fun poetAnnotation(className: ClassName, block: AnnotationSpec.Builder.() -> Unit) =
     AnnotationSpec.builder(className).apply(block).build()
 
+fun poetCompanionObject(name: String?=null, block: TypeSpec.Builder.() -> Unit) =
+    TypeSpec.companionObjectBuilder(name).apply(block).build()
+
 fun poetParameter(
     name: String,
     typeName: TypeName,
@@ -51,8 +54,10 @@ fun poetProperty(
     block: PropertySpec.Builder.() -> Unit
 ) = PropertySpec.builder(name, kcls, *modifiers).apply(block).build()
 
-fun TypeName.nullable(nullable: Boolean) =
+fun TypeName.nullable(nullable: Boolean = true) =
     if (this.isNullable == nullable) this else copy(nullable)
+
+fun TypeName.notNull() = nullable(false)
 
 fun TypeSpec.Builder.primaryConstructor(vararg properties: PropertySpec): TypeSpec.Builder {
     val propertySpecs = properties.map { p -> p.toBuilder().initializer(p.name).build() }

@@ -1,67 +1,53 @@
 package com.kroegerama.kgen.language
 
-import com.ibm.icu.text.RuleBasedNumberFormat
-import java.util.*
+// Handle snake_case, kebab-case, and non-alphanumeric characters
+private val nonWord = "[^a-zA-Z0-9]".toRegex()
 
-fun String.asFunctionName() = fixLeadingNumber().lowerCamelCase()
-fun String.asFieldName() = fixLeadingNumber().lowerCamelCase()
-fun String.asTypeName() = fixLeadingNumber().upperCamelCase()
-fun String.asConstantName() = fixLeadingNumber().upperSnakeCase()
-fun String.asClassFileName() = fixLeadingNumber().upperCamelCase()
+// Regex to match words in CamelCase, including uppercase acronyms like "CSVExport"
+private val splitter = "([A-Z]+(?![a-z])|[A-Z]?[a-z]+|\\d+)".toRegex()
 
-private val leadingNumberRegex by lazy { "^([0-9]+)(.*)".toRegex() }
-private val ruleNumberFormat by lazy { RuleBasedNumberFormat(Locale.US, RuleBasedNumberFormat.SPELLOUT) }
+private fun String.splitHelper(
+    partModifier: (String) -> String,
+    separator: String,
+    firstCharModifier: (Char) -> Char
+): String {
+    val cleaned = replace(nonWord, " ")
+    val words = splitter.findAll(cleaned).map { it.value }.toList()
+    val combined = words.joinToString(
+        separator = separator,
+        transform = partModifier
+    ).replaceFirstChar(firstCharModifier)
+    return if (combined.firstOrNull()?.isDigit() == true) "_$combined" else combined
+}
 
-fun String.fixLeadingNumber(): String = if (startsWithNumber()) {
-    val tail = leadingNumberRegex.replace(this, "$2")
-    val num = substring(0, length - tail.length).toLongOrNull()
-    if (num == null) {
-        tail
-    } else {
-        ruleNumberFormat.format(num) + tail.capitalize()
+fun String.asFunctionName() = splitHelper(
+    partModifier = { part ->
+        part.lowercase().replaceFirstChar {
+            it.uppercase()
+        }
+    },
+    separator = "",
+    firstCharModifier = {
+        it.lowercaseChar()
     }
-} else this
+)
 
-fun String.startsWithNumber() = leadingNumberRegex.matches(this)
+fun String.asFieldName() = asFunctionName()
 
-fun String.escapeKotlin() =
-    if (this in reservedWords)
-        "`$this`"
-    else
-        this
+fun String.asTypeName() = splitHelper(
+    partModifier = { part ->
+        part.replaceFirstChar {
+            it.uppercase()
+        }
+    },
+    separator = "",
+    firstCharModifier = { it }
+)
 
-/**
- * DOES NOT contain keywords from https://kotlinlang.org/docs/reference/keyword-reference.html
- * because 'val data: String' is valid, but not 'val fun: String'
- * also valid: 'val override: Int = 2'
- */
-val reservedWords = setOf(
-    "package",
-    "as",
-    "typealias",
-    "class",
-    "this",
-    "super",
-    "val",
-    "var",
-    "fun",
-    "for",
-    "null",
-    "true",
-    "false",
-    "is",
-    "in",
-    "throw",
-    "return",
-    "break",
-    "continue",
-    "object",
-    "if",
-    "try",
-    "else",
-    "while",
-    "do",
-    "when",
-    "interface",
-    "typeof"
+fun String.asConstantName() = splitHelper(
+    partModifier = { part ->
+        part.uppercase()
+    },
+    separator = "_",
+    firstCharModifier = { it }
 )

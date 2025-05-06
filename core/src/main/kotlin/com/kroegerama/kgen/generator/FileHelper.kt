@@ -13,38 +13,40 @@ class FileHelper(
     private val options: OptionSet
 ) {
 
-    private val rootPath by lazy { File(options.outputDir).apply { mkdirs() } }
-    private val srcPath by lazy { File(rootPath, Constants.SRC_PATH).apply { mkdirs() } }
+    private val outputDir = run {
+        val rootDir = File(options.outputDir)
+        if (options.outputDirIsSrcDir) {
+            rootDir
+        } else {
+            File(rootDir, Constants.SRC_PATH)
+        }
+    }
+
+    fun prepare() {
+        outputDir.mkdirs()
+    }
 
     fun writeFileSpec(fileSpec: FileSpec) {
-        if (options.dryRun) {
-            println("Dry run - File not written: ${fileSpec.packageName} ${fileSpec.name}")
-            return
-        }
         println("Writing ${fileSpec.packageName} ${fileSpec.name}")
 
-        val directory = if (options.outputDirIsSrcDir) {
-            rootPath
-        } else {
-            srcPath
-        }.toPath()
+        val outputPath = outputDir.toPath()
 
-        require(Files.notExists(directory) || Files.isDirectory(directory)) {
-            "path $directory exists but is not a directory."
+        require(Files.notExists(outputPath) || Files.isDirectory(outputPath)) {
+            "path $outputPath exists but is not a directory."
         }
-        var outputDirectory = directory
+        var directoryPath = outputPath
         val packageName = fileSpec.packageName
         val name = fileSpec.name
         if (packageName.isNotEmpty()) {
             for (packageComponent in packageName.split('.').dropLastWhile { it.isEmpty() }) {
-                outputDirectory = outputDirectory.resolve(packageComponent)
+                directoryPath = directoryPath.resolve(packageComponent)
             }
         }
 
-        Files.createDirectories(outputDirectory)
+        Files.createDirectories(directoryPath)
 
-        val outputPath = outputDirectory.resolve("$name.kt")
-        OutputStreamWriter(Files.newOutputStream(outputPath), StandardCharsets.UTF_8).use { writer ->
+        val filePath = directoryPath.resolve("$name.kt")
+        OutputStreamWriter(Files.newOutputStream(filePath), StandardCharsets.UTF_8).use { writer ->
             fileSpec.comment.toString().let {
                 writer.write(it.asMultilineComment())
                 writer.write("\n")

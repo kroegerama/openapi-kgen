@@ -1,11 +1,14 @@
+import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.time.Duration
 
 plugins {
     java
-    kotlin("jvm") version V.KOTLIN
     id("signing")
     id("maven-publish")
-    id("io.github.gradle-nexus.publish-plugin") version V.NEXUS_PUBLISH
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.nexus.publish)
+    alias(libs.plugins.versions)
 }
 
 allprojects {
@@ -21,12 +24,12 @@ allprojects {
     }
 
     dependencies {
-        implementation(kotlin("stdlib-jdk8"))
+        implementation(rootProject.libs.kotlin.stdlib)
     }
 
     configure<JavaPluginExtension> {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
 
     version = C.PROJECT_VERSION
@@ -36,10 +39,14 @@ allprojects {
 
     tasks {
         compileKotlin {
-            kotlinOptions.jvmTarget = "17"
+            compilerOptions {
+                jvmTarget = JvmTarget.JVM_11
+            }
         }
         compileTestKotlin {
-            kotlinOptions.jvmTarget = "17"
+            compilerOptions {
+                jvmTarget = JvmTarget.JVM_11
+            }
         }
     }
 }
@@ -64,14 +71,14 @@ subprojects {
                 if (!isPlugin) {
                     val binaryJar = components["java"]
 
-                    val sourcesJar by tasks.creating(Jar::class) {
+                    val sourcesJar by tasks.registering(Jar::class) {
                         archiveClassifier.set("sources")
                         from(sourceSets["main"].allSource)
                     }
 
-                    val javadocJar: Jar by tasks.creating(Jar::class) {
+                    val javadocJar by tasks.registering(Jar::class) {
                         archiveClassifier.set("javadoc")
-                        from("$buildDir/javadoc")
+                        from(layout.buildDirectory.dir("javadoc"))
                     }
 
                     from(binaryJar)
@@ -120,4 +127,18 @@ nexusPublishing {
         maxRetries.set(60)
         delayBetween.set(Duration.ofSeconds(60))
     }
+}
+
+tasks.withType<DependencyUpdatesTask>().configureEach {
+    gradleReleaseChannel = "current"
+    revision = "release"
+    rejectVersionIf {
+        isNonStable(candidate.version) && !isNonStable(currentVersion)
+    }
+}
+
+private val nonStableQualifiers = listOf("alpha", "beta", "rc")
+
+private fun isNonStable(version: String): Boolean = nonStableQualifiers.any { qualifier ->
+    qualifier in version.lowercase()
 }
