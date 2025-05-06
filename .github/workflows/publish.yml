@@ -33,6 +33,14 @@ jobs:
           ORG_GRADLE_PROJECT_nexusStagingProfileId: ${{ secrets.STAGING_PROFILE_ID }}
           ORG_GRADLE_PROJECT_signingKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.SIGNING_PASSWORD }}
+      - name: Publish companion to MavenCentral
+        run: ./gradlew companion:publishToSonatype --max-workers 1 closeAndReleaseSonatypeStagingRepository
+        env:
+          ORG_GRADLE_PROJECT_nexusUsername: ${{ secrets.NEXUS_USERNAME }}
+          ORG_GRADLE_PROJECT_nexusPassword: ${{ secrets.NEXUS_PASSWORD }}
+          ORG_GRADLE_PROJECT_nexusStagingProfileId: ${{ secrets.STAGING_PROFILE_ID }}
+          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.SIGNING_PASSWORD }}
   publish-gradle-plugin:
     name: Release Gradle Plugin
     runs-on: ubuntu-latest
