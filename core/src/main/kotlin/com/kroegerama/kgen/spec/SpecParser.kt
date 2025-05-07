@@ -24,6 +24,7 @@ class SpecParser(
             throw IllegalStateException("Cannot parse spec $specFile")
         }
 
+        result.openAPI.fixAnyOfNullRef()
         result.openAPI.flattenPaths()
         result.openAPI.filterOperations()
         result.openAPI.filterSchemas()
@@ -119,6 +120,42 @@ class SpecParser(
         paths = Paths().apply { putAll(filteredPathsMap) }
     }
 
+    private fun OpenAPI.fixAnyOfNullRef() {
+        val visitor = SpecVisitor(
+            openAPI = this,
+            options = options
+        )
+
+        data class Fix(
+            val schema: Schema<*>,
+            val ref: String
+        )
+
+        val fixes = mutableSetOf<Fix>()
+        visitor.visit { schema ->
+            val anyOf = schema.anyOf
+            if (anyOf != null && anyOf.size == 2) {
+                val ref = anyOf.firstNotNullOfOrNull {
+                    it.`$ref`
+                }
+                val nl = anyOf.firstNotNullOfOrNull {
+                    it.types.orEmpty().contains("null")
+                }
+                if (ref != null && nl != null) {
+                    fixes += Fix(
+                        schema = schema,
+                        ref = ref
+                    )
+                }
+            }
+        }
+        fixes.forEach {
+            it.schema.anyOf = null
+            it.schema.`$ref` = it.ref
+            it.schema.nullable = true
+        }
+    }
+
     private fun OpenAPI.filterSchemas() {
         if (options.generateAllNamedSchemas) {
             return
@@ -140,6 +177,9 @@ class SpecParser(
             }
         }
         removeSchemas.forEach { name ->
+            if (options.verbose) {
+                println("remove unused schema '$name'")
+            }
             components?.schemas?.remove(name)
         }
     }

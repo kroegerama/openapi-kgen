@@ -6,7 +6,8 @@ import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.Operation
 import io.swagger.v3.oas.models.PathItem
 import io.swagger.v3.oas.models.headers.Header
-import io.swagger.v3.oas.models.media.*
+import io.swagger.v3.oas.models.media.Content
+import io.swagger.v3.oas.models.media.Schema
 import io.swagger.v3.oas.models.parameters.Parameter
 import io.swagger.v3.oas.models.responses.ApiResponse
 import java.util.*
@@ -111,6 +112,12 @@ class SpecVisitor(
         response: ApiResponse,
         visitor: (schema: Schema<*>) -> Unit
     ) {
+        val refResponse = response.`$ref`?.substringAfterLast('/')
+        if (refResponse != null) {
+            openAPI.components?.responses?.get(refResponse)?.let {
+                visitResponse(visFun, it, visitor)
+            }
+        }
         response.content?.let { content ->
             visitContent(visFun, content, visitor)
         }
@@ -140,7 +147,7 @@ class SpecVisitor(
         if (!visFun(schema)) {
             return
         }
-        val refType = schema.`$ref`?.removePrefix("#/components/schemas/")
+        val refType = schema.`$ref`?.substringAfterLast('/')
         if (refType != null) {
             openAPI.components?.schemas?.get(refType)?.let { refSchema ->
                 visitSchema(visFun, refSchema, visitor)
@@ -150,30 +157,20 @@ class SpecVisitor(
 
         visitor.invoke(schema)
 
-        when (schema) {
-            is ComposedSchema -> {
-                schema.oneOf?.forEach { s ->
-                    visitSchema(visFun, s, visitor)
-                }
-                schema.allOf?.forEach { s ->
-                    visitSchema(visFun, s, visitor)
-                }
-                schema.anyOf?.forEach { s ->
-                    visitSchema(visFun, s, visitor)
-                }
-            }
-
-            is ArraySchema -> {
-                schema.items?.let { items ->
-                    visitSchema(visFun, items, visitor)
-                }
-            }
-
-            is MapSchema -> {
-                (schema.additionalProperties as? Schema<*>)?.let { additionalProperties ->
-                    visitSchema(visFun, additionalProperties, visitor)
-                }
-            }
+        schema.oneOf?.forEach { s ->
+            visitSchema(visFun, s, visitor)
+        }
+        schema.allOf?.forEach { s ->
+            visitSchema(visFun, s, visitor)
+        }
+        schema.anyOf?.forEach { s ->
+            visitSchema(visFun, s, visitor)
+        }
+        schema.items?.let { items ->
+            visitSchema(visFun, items, visitor)
+        }
+        (schema.additionalProperties as? Schema<*>)?.let { additionalProperties ->
+            visitSchema(visFun, additionalProperties, visitor)
         }
         schema.not?.let { not ->
             visitSchema(visFun, not, visitor)
