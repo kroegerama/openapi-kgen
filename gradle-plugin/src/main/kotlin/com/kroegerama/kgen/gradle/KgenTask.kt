@@ -76,7 +76,7 @@ abstract class KgenTask : DefaultTask() {
                 if (!specFile.exists()) {
                     throw InvalidUserDataException("specFile $specFile not found")
                 }
-                specFile.absolutePath
+                specFile.absoluteFile.invariantSeparatorsPath
             }
 
             !specUri.isNullOrBlank() -> specUri
