@@ -129,7 +129,7 @@ class PoetGenerator(
             addModifiers(KModifier.SEALED)
             val id = poetProperty("id", STRING) { }
             val provideAuthItem = poetFunSpec("provideAuthItem") {
-                addModifiers(KModifier.ABSTRACT)
+                addModifiers(KModifier.ABSTRACT, KModifier.SUSPEND)
                 returns(PoetTypes.AuthItem.nullable())
             }
             addProperty(id)
@@ -265,6 +265,8 @@ class PoetGenerator(
                             "getBasic",
                             LambdaTypeName.get(
                                 returnType = PoetTypes.AuthItemBasic.nullable()
+                            ).copy(
+                                suspending = true
                             )
                         ) {}
                         val id = poetProperty("id", STRING) {
@@ -272,7 +274,7 @@ class PoetGenerator(
                             initializer("ID")
                         }
                         val provideAuthItem = poetFunSpec("provideAuthItem") {
-                            addModifiers(KModifier.OVERRIDE)
+                            addModifiers(KModifier.OVERRIDE, KModifier.SUSPEND)
                             returns(PoetTypes.AuthItem.nullable())
                             addStatement("return getBasic()")
                         }
@@ -286,6 +288,8 @@ class PoetGenerator(
                             "getBearer",
                             LambdaTypeName.get(
                                 returnType = PoetTypes.AuthItemBearer.nullable()
+                            ).copy(
+                                suspending = true
                             )
                         ) {}
                         val id = poetProperty("id", STRING) {
@@ -293,7 +297,7 @@ class PoetGenerator(
                             initializer("ID")
                         }
                         val provideAuthItem = poetFunSpec("provideAuthItem") {
-                            addModifiers(KModifier.OVERRIDE)
+                            addModifiers(KModifier.OVERRIDE, KModifier.SUSPEND)
                             returns(PoetTypes.AuthItem.nullable())
                             addStatement("return getBearer()")
                         }
@@ -312,6 +316,8 @@ class PoetGenerator(
                             getValueName,
                             LambdaTypeName.get(
                                 returnType = STRING.nullable()
+                            ).copy(
+                                suspending = true
                             )
                         ) {}
                         val id = poetProperty("id", STRING) {
@@ -319,7 +325,7 @@ class PoetGenerator(
                             initializer("ID")
                         }
                         val provideAuthItem = poetFunSpec("provideAuthItem") {
-                            addModifiers(KModifier.OVERRIDE)
+                            addModifiers(KModifier.OVERRIDE, KModifier.SUSPEND)
                             returns(PoetTypes.AuthItem.nullable())
                             addCode(
                                 buildCodeBlock {

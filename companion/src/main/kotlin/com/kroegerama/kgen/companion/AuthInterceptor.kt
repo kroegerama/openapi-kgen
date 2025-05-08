@@ -1,5 +1,7 @@
 package com.kroegerama.kgen.companion
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import okhttp3.Credentials
 import okhttp3.Interceptor
 import retrofit2.Invocation
@@ -10,7 +12,7 @@ annotation class AuthInterceptorToken(
     vararg val value: String
 )
 
-typealias AuthItemProvider = () -> AuthItem?
+typealias AuthItemProvider = suspend () -> AuthItem?
 
 class AuthInterceptor : Interceptor {
     private val authProviderMap: MutableMap<String, AuthItemProvider> = mutableMapOf()
@@ -34,7 +36,7 @@ class AuthInterceptor : Interceptor {
             val urlBuilder = request.url.newBuilder()
             for (parameterName in token.value) {
                 val provider = authProviderMap[parameterName] ?: continue
-                val authItem = provider() ?: continue
+                val authItem = runBlocking(Dispatchers.IO) { provider() } ?: continue
 
                 when (authItem.position) {
                     AuthItem.Position.Header -> addHeader(authItem.name, authItem.value)
