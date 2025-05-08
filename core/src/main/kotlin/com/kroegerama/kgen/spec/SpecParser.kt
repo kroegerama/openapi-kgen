@@ -25,6 +25,7 @@ class SpecParser(
         }
 
         result.openAPI.fixAnyOfNullRef()
+        result.openAPI.fixSingleAllOfNullableRef()
         result.openAPI.flattenPaths()
         result.openAPI.filterOperations()
         result.openAPI.filterSchemas()
@@ -121,12 +122,21 @@ class SpecParser(
     }
 
     private fun OpenAPI.fixAnyOfNullRef() {
+        /*
+        anyOf:
+          - $ref: "#/components/schemas/OffsetDateTime"
+          - type: "null"
+        --->
+        $ref: "#/components/schemas/OffsetDateTime"
+        nullable: true
+         */
+
         val visitor = SpecVisitor(
             openAPI = this,
             options = options
         )
 
-        data class Fix(
+        class Fix(
             val schema: Schema<*>,
             val ref: String
         )
@@ -153,6 +163,46 @@ class SpecParser(
             it.schema.anyOf = null
             it.schema.`$ref` = it.ref
             it.schema.nullable = true
+        }
+    }
+
+    private fun OpenAPI.fixSingleAllOfNullableRef() {
+        /*
+        allOf:
+          - $ref: "#/components/schemas/OffsetDateTime"
+        nullable: true
+        --->
+        $ref: "#/components/schemas/OffsetDateTime"
+        nullable: true
+         */
+
+        val visitor = SpecVisitor(
+            openAPI = this,
+            options = options
+        )
+
+        class Fix(
+            val schema: Schema<*>,
+            val ref: String
+        )
+
+        val fixes = mutableSetOf<Fix>()
+        visitor.visit { schema ->
+            val allOf = schema.allOf
+            if (allOf != null && allOf.size == 1) {
+                val first = allOf.first()
+                if (first.`$ref` != null) {
+                    fixes += Fix(
+                        schema = schema,
+                        ref = first.`$ref`
+                    )
+                }
+            }
+        }
+
+        fixes.forEach {
+            it.schema.allOf = null
+            it.schema.`$ref` = it.ref
         }
     }
 
