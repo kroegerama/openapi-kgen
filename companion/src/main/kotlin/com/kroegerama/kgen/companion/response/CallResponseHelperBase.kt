@@ -3,6 +3,7 @@ package com.kroegerama.kgen.companion.response
 import arrow.core.Either
 import okhttp3.ResponseBody
 import retrofit2.Retrofit
+import java.lang.reflect.Type
 
 open class CallResponseHelperBase<ErrorType>(
     private val errorType: Class<ErrorType>,
@@ -11,25 +12,41 @@ open class CallResponseHelperBase<ErrorType>(
     private val retrofit get() = retrofitProvider()
 
     fun <T> EitherCallResponse<T>.typed(): EitherTypedCallResponse<ErrorType, T> {
-        return mapLeft<TypedCallException<ErrorType>> { callException ->
-            when (callException) {
-                is HttpCallException -> {
-                    val error = callException.raw.body?.convert()?.getOrNull() ?: return@mapLeft callException
-                    TypedHttpCallException(
-                        error = error,
-                        raw = callException.raw,
-                        cause = callException
-                    )
-                }
-
-                is IOCallException -> callException
-                is UnexpectedCallException -> callException
-            }
+        return mapLeft { callException ->
+            callException.typed()
         }
     }
 
-    private fun ResponseBody.convert(): Either<Throwable, ErrorType> = Either.catch {
-        val converter = retrofit.responseBodyConverter<ErrorType>(errorType, arrayOfNulls(0))
-        converter.convert(this)!!
+    fun CallException.typed(): TypedCallException<ErrorType> = typed(retrofit, errorType)
+}
+
+inline fun <reified E> CallException.typed(
+    retrofit: Retrofit
+): TypedCallException<E> = typed(retrofit, E::class.java)
+
+fun <E> CallException.typed(
+    retrofit: Retrofit,
+    type: Type
+): TypedCallException<E> {
+    if (this !is HttpCallException) {
+        return this
     }
+    val error = raw.body?.convert<E>(retrofit, type)?.getOrNull() ?: return this
+    return TypedHttpCallException(
+        error = error,
+        raw = raw,
+        cause = this
+    )
+}
+
+inline fun <reified E> ResponseBody.convert(
+    retrofit: Retrofit
+): Either<Throwable, E> = convert(retrofit, E::class.java)
+
+fun <E> ResponseBody.convert(
+    retrofit: Retrofit,
+    type: Type
+): Either<Throwable, E> = Either.catch {
+    val converter = retrofit.responseBodyConverter<E>(type, arrayOfNulls(0))
+    converter.convert(this)!!
 }
