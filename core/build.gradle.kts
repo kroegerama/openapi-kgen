@@ -5,6 +5,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 dependencies {
     api(libs.swagger.parser)
     implementation(libs.kotlinpoet)
+    implementation(libs.okhttp)
 }
 
 val buildConfigDir = layout.buildDirectory.dir("generated/buildConfig")

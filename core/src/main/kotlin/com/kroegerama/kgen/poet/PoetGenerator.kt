@@ -4,6 +4,7 @@ import com.kroegerama.kgen.OptionSet
 import com.kroegerama.kgen.spec.*
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import okhttp3.internal.http.HttpMethod
 import java.time.format.DateTimeFormatter
 
 class PoetGenerator(
@@ -176,11 +177,18 @@ class PoetGenerator(
     private fun createOperation(operation: SpecOperation): FunSpec {
         return poetFunSpec(operation.name) {
             addModifiers(KModifier.SUSPEND, KModifier.ABSTRACT)
+
+            val operationHasBody = operation.body != null
+            val requiresBody = HttpMethod.requiresRequestBody(operation.method.name)
+
+            // OKHTTP needs `hasBody = true` for e.g. POST requests, even if there is no actual requestBody
+            val hasBody = operationHasBody || requiresBody
+
             addAnnotation(
                 http(
                     method = operation.method.name,
                     path = operation.path.trimStart('/'),
-                    hasBody = operation.body != null
+                    hasBody = hasBody
                 )
             )
             if (operation.deprecated) {
