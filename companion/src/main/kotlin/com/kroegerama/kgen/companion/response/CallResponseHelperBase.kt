@@ -31,10 +31,10 @@ fun <E> CallException.typed(
     if (this !is HttpCallException) {
         return this
     }
-    val error = raw.body?.convert<E>(retrofit, type)?.getOrNull() ?: return this
+    val error = response.errorBody()?.convert<E>(retrofit, type)?.getOrNull() ?: return this
     return TypedHttpCallException(
         error = error,
-        raw = raw,
+        response = response,
         cause = this
     )
 }

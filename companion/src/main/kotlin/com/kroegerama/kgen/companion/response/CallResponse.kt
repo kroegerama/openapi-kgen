@@ -15,7 +15,7 @@ typealias EitherTypedCallResponse<E, T> = Either<TypedCallException<E>, HttpCall
 
 fun Response<*>.asCallException(): CallException {
     return HttpCallException(
-        raw = raw(),
+        response = this,
         cause = null
     )
 }
@@ -23,7 +23,7 @@ fun Response<*>.asCallException(): CallException {
 fun Throwable.asCallException(): CallException {
     return when (this) {
         is HttpException -> HttpCallException(
-            raw = response()?.raw() ?: return UnexpectedCallException("Response was null", this),
+            response = response() ?: return UnexpectedCallException("Response was null", this),
             cause = this
         )
 
@@ -39,7 +39,7 @@ fun <T> EitherCallResponse<T>.asResponse(): Response<out T> = mapLeft<Response<T
         is UnexpectedCallException -> 999
     }
     val responseBody: ResponseBody = when (callException) {
-        is HttpCallException -> callException.raw.body
+        is HttpCallException -> callException.response.errorBody()
         is IOCallException -> null
         is UnexpectedCallException -> null
     } ?: callException.message.orEmpty().toResponseBody()
@@ -67,20 +67,20 @@ sealed class CallException : RuntimeException(), TypedCallException<Nothing>
 
 data class TypedHttpCallException<out E>(
     val error: E,
-    val raw: okhttp3.Response,
+    val response: Response<*>,
     val cause: CallException?
 ) : TypedCallException<E> {
-    val code: Int = raw.code
-    val headers: Headers = raw.headers
+    val code: Int get() = response.code()
+    val headers: Headers get() = response.headers()
 }
 
 data class HttpCallException(
-    val raw: okhttp3.Response,
+    val response: Response<*>,
     override val cause: Throwable?
 ) : CallException() {
-    val code: Int = raw.code
-    override val message: String = raw.message
-    val headers: Headers = raw.headers
+    val code: Int get() = response.code()
+    override val message: String get() = response.message()
+    val headers: Headers get() = response.headers()
 }
 
 data class IOCallException(
