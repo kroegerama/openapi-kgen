@@ -3,6 +3,7 @@ dependencies {
 
     api(Dep.SWAGGER_PARSER)
     implementation(Dep.KOTLIN_POET)
+    implementation(Dep.OKHTTP)
 }
 
 tasks.processResources {

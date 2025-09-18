@@ -20,6 +20,7 @@ object V {
     const val KOTLIN_POET = "1.18.1"
     const val SHADOW = "8.1.1"
     const val NEXUS_PUBLISH = "2.0.0"
+    const val OKHTTP = "4.12.0"
 }
 
 object Dep {
@@ -31,4 +32,5 @@ object Dep {
     const val ICU = "com.ibm.icu:icu4j:${V.ICU}"
     const val SWAGGER_PARSER = "io.swagger.parser.v3:swagger-parser:${V.SWAGGER_PARSER}"
     const val KOTLIN_POET = "com.squareup:kotlinpoet:${V.KOTLIN_POET}"
+    const val OKHTTP = "com.squareup.okhttp3:okhttp:${V.OKHTTP}"
 }
