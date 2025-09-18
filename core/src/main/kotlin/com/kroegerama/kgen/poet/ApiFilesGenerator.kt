@@ -15,6 +15,7 @@ import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.parameters.Parameter
+import okhttp3.internal.http.HttpMethod
 
 interface IApiFilesGenerator {
     fun getApiFiles(): List<FileSpec>
@@ -181,7 +182,10 @@ class ApiFilesGenerator(
         val suffix = if (sync) "Call" else ""
         "__$funName$suffix"
     }) {
-        val methodAnnotation = createHttpMethodAnnotation(operationInfo.method, operationInfo.path, request != null)
+        val operationHasBody = request != null
+        val requiresBody = HttpMethod.requiresRequestBody(operationInfo.method.name)
+        val hasBody = operationHasBody || requiresBody
+        val methodAnnotation = createHttpMethodAnnotation(operationInfo.method, operationInfo.path, hasBody)
         addAnnotation(methodAnnotation)
 
         if (operationInfo.securityNames.isNotEmpty()) {
