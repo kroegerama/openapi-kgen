@@ -44,11 +44,10 @@ allprojects {
     }
 }
 
-val nexusUsername: String? by project
-val nexusPassword: String? by project
+val sonatypeUsername: String? by project
+val sonatypePassword: String? by project
 val signingKey: String? by project
 val signingPassword: String? by project
-val nexusStagingProfileId: String? by project
 
 subprojects {
     apply {
@@ -81,17 +80,6 @@ subprojects {
                 pom(BuildConfig.pomAction)
             }
         }
-        repositories {
-            maven {
-                name = "sonatype"
-                setUrl("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
-
-                credentials {
-                    username = nexusUsername
-                    password = nexusPassword
-                }
-            }
-        }
     }
     signing {
         sign(publishing.publications)
@@ -102,15 +90,14 @@ subprojects {
 }
 
 nexusPublishing {
-    packageGroup.set(group.toString())
+    packageGroup = group.toString()
     repositories {
         sonatype {
-            stagingProfileId.set(nexusStagingProfileId)
-            username.set(nexusUsername)
-            password.set(nexusPassword)
+            username = sonatypeUsername
+            password = sonatypePassword
 
-            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
-            snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
+            nexusUrl = uri("https://ossrh-staging-api.central.sonatype.com/service/local/")
+            snapshotRepositoryUrl = uri("https://central.sonatype.com/repository/maven-snapshots/")
         }
     }
 
