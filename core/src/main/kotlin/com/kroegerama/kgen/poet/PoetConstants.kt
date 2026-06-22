@@ -5,6 +5,8 @@ import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.asClassName
 import java.time.LocalDate
 import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeFormatterBuilder
 import java.util.*
 
 object PoetConstants {
@@ -68,6 +70,8 @@ object PoetConstants {
     val DATE = Date::class.asClassName()
     val OFFSET_DATE_TIME = OffsetDateTime::class.asClassName()
     val LOCAL_DATE = LocalDate::class.asClassName()
+    val DATE_TIME_FORMATTER = DateTimeFormatter::class.asClassName()
+    val DATE_TIME_FORMATTER_BUILDER = DateTimeFormatterBuilder::class.asClassName()
 
     val RFC_DATE_ADAPTER = ClassName("com.squareup.moshi.adapters", "Rfc3339DateJsonAdapter")
 

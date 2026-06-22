@@ -210,14 +210,14 @@ class BaseFilesGenerator(
             val fCreateMoshi = poetFunSpec(fnCreateMoshi.simpleName) {
                 addModifiers(KModifier.PRIVATE)
                 beginControlFlow("return %T().run", PoetConstants.MOSHI_BUILDER)
-                addStatement("add(%T::class.java, %T())", PoetConstants.DATE, PoetConstants.RFC_DATE_ADAPTER)
+                addStatement("addLast(%T::class.java, %T())", PoetConstants.DATE, PoetConstants.RFC_DATE_ADAPTER)
                 addStatement(
-                    "add(%T::class.java, %T)",
+                    "addLast(%T::class.java, %T)",
                     PoetConstants.LOCAL_DATE,
                     ClassName(options.packageName, "LocalDateJsonAdapter")
                 )
                 addStatement(
-                    "add(%T::class.java, %T)",
+                    "addLast(%T::class.java, %T)",
                     PoetConstants.OFFSET_DATE_TIME,
                     ClassName(options.packageName, "OffsetDateTimeJsonAdapter")
                 )
@@ -720,6 +720,16 @@ class BaseFilesGenerator(
         val offsetDateTimeConverter = poetObject(ClassName(options.packageName, "OffsetDateTimeJsonAdapter")) {
             superclass(PoetConstants.MOSHI_JSON_ADAPTER.parameterizedBy(PoetConstants.OFFSET_DATE_TIME))
 
+            addProperty(
+                PropertySpec.builder("formatter", PoetConstants.DATE_TIME_FORMATTER, KModifier.PRIVATE)
+                    .initializer(
+                        "%T()\n.append(%T.ISO_LOCAL_DATE_TIME)\n.appendPattern(\"[XXX][X]\")\n.toFormatter()",
+                        PoetConstants.DATE_TIME_FORMATTER_BUILDER,
+                        PoetConstants.DATE_TIME_FORMATTER
+                    )
+                    .build()
+            )
+
             val fromJson = poetFunSpec("fromJson") {
                 addModifiers(KModifier.OVERRIDE)
                 addParameter("reader", PoetConstants.JSON_READER)
@@ -729,7 +739,7 @@ class BaseFilesGenerator(
                     return if (reader.peek() == %T.Token.NULL) {
                         reader.nextNull()
                     } else {
-                        %T.parse(reader.nextString())
+                        %T.parse(reader.nextString(), formatter)
                     }""".trimIndent(),
                     PoetConstants.JSON_READER,
                     PoetConstants.OFFSET_DATE_TIME
@@ -744,8 +754,9 @@ class BaseFilesGenerator(
                     if (value == null) {
                         writer.nullValue()
                     } else {
-                        writer.value(value.toString())
-                    }""".trimIndent()
+                        writer.value(value.format(%T.ISO_OFFSET_DATE_TIME))
+                    }""".trimIndent(),
+                    PoetConstants.DATE_TIME_FORMATTER
                 )
             }
 
